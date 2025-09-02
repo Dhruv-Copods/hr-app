@@ -16,6 +16,11 @@ import type { Employee, CreateEmployeeData, UpdateEmployeeData } from './types';
 const COLLECTION_NAME = 'employees';
 
 export class EmployeeService {
+  private static generateUniqueId(): string {
+    const timestamp = Date.now().toString(36);
+    const randomString = Math.random().toString(36).substr(2, 5);
+    return `EMP-${timestamp}-${randomString}`.toUpperCase();
+  }
   private static getCollection() {
     return collection(db, COLLECTION_NAME);
   }
@@ -61,8 +66,10 @@ export class EmployeeService {
   static async createEmployee(employeeData: CreateEmployeeData): Promise<Employee> {
     try {
       const now = Timestamp.now();
+      const uniqueId = this.generateUniqueId();
       const docData = {
         ...employeeData,
+        uniqueId,
         createdAt: now,
         updatedAt: now,
       };
@@ -72,6 +79,7 @@ export class EmployeeService {
       return {
         id: docRef.id,
         ...employeeData,
+        uniqueId,
         createdAt: now.toDate().toISOString(),
         updatedAt: now.toDate().toISOString(),
       };
@@ -138,25 +146,5 @@ export class EmployeeService {
     }
   }
 
-  static async getEmployeesByStatus(status: string): Promise<Employee[]> {
-    try {
-      const q = query(
-        this.getCollection(),
-        orderBy('createdAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
 
-      return querySnapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
-          updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
-        }) as Employee)
-        .filter(employee => employee.status === status);
-    } catch (error) {
-      console.error('Error fetching employees by status:', error);
-      throw new Error('Failed to fetch employees by status');
-    }
-  }
 }

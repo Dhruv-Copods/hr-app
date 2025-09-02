@@ -1,35 +1,21 @@
 export interface Employee {
   id?: string;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  uniqueId: string; // Auto-generated unique ID for database purposes
+  name: string;
   department: string;
-  position: string;
-  hireDate: string;
-  salary: number;
-  status: 'active' | 'inactive' | 'terminated';
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  emergencyContact: {
-    name: string;
-    relationship: string;
-    phone: string;
-  };
+  designation: string;
+  dateOfJoining: string;
+  dateOfBirth: string;
+  currentAddress: string;
+  permanentAddress: string;
+  officialEmail: string;
+  personalEmail: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface CreateEmployeeData extends Omit<Employee, 'id' | 'createdAt' | 'updatedAt'> {}
+export interface CreateEmployeeData extends Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'uniqueId'> {}
 export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {}
-
-export type EmployeeStatus = Employee['status'];
 
 export const DEPARTMENTS = [
   'Engineering',
@@ -43,7 +29,7 @@ export const DEPARTMENTS = [
   'Administration'
 ] as const;
 
-export const POSITIONS = [
+export const DESIGNATIONS = [
   'Software Engineer',
   'Senior Software Engineer',
   'Team Lead',
@@ -65,7 +51,7 @@ export const POSITIONS = [
 ] as const;
 
 export type Department = typeof DEPARTMENTS[number];
-export type Position = typeof POSITIONS[number];
+export type Designation = typeof DESIGNATIONS[number];
 
 // Leave Management Types
 export type LeaveDayType = 'leave' | 'wfh' | 'present';

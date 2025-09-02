@@ -8,10 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   Mail,
-  Phone,
   MapPin,
   Calendar,
-  DollarSign,
   User,
   Building,
   Briefcase,
@@ -66,18 +64,7 @@ export const EmployeeDetail: React.FC = () => {
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'default';
-      case 'inactive':
-        return 'secondary';
-      case 'terminated':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
+
 
   const getLeaveDayTypeIcon = (type: LeaveDayType) => {
     switch (type) {
@@ -90,12 +77,7 @@ export const EmployeeDetail: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -171,9 +153,9 @@ export const EmployeeDetail: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {employee.firstName} {employee.lastName}
+            {employee.name}
           </h1>
-          <p className="text-gray-600">Employee ID: {employee.employeeId}</p>
+          <p className="text-gray-600">Employee Details</p>
         </div>
       </div>
 
@@ -194,39 +176,24 @@ export const EmployeeDetail: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">First Name</Label>
-                    <p className="text-lg">{employee.firstName}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Last Name</Label>
-                    <p className="text-lg">{employee.lastName}</p>
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Name</Label>
+                  <p className="text-lg">{employee.name}</p>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Email</Label>
+                  <Label className="text-sm font-medium text-gray-500">Official Email</Label>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <p>{employee.email}</p>
+                    <p>{employee.officialEmail}</p>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
+                  <Label className="text-sm font-medium text-gray-500">Personal Email</Label>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <p>{employee.phone}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <div className="mt-1">
-                    <Badge variant={getStatusBadgeVariant(employee.status)}>
-                      {employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}
-                    </Badge>
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    <p>{employee.personalEmail}</p>
                   </div>
                 </div>
               </CardContent>
@@ -250,23 +217,23 @@ export const EmployeeDetail: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Position</Label>
-                  <p>{employee.position}</p>
+                  <Label className="text-sm font-medium text-gray-500">Designation</Label>
+                  <p>{employee.designation}</p>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Hire Date</Label>
+                  <Label className="text-sm font-medium text-gray-500">Date of Joining</Label>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-400" />
-                    <p>{formatDate(employee.hireDate)}</p>
+                    <p>{formatDate(employee.dateOfJoining)}</p>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Salary</Label>
+                  <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                    <p className="text-lg font-medium">{formatCurrency(employee.salary)}</p>
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <p>{formatDate(employee.dateOfBirth)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -280,43 +247,20 @@ export const EmployeeDetail: React.FC = () => {
                   Address
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p>{employee.address.street}</p>
-                  <p>{employee.address.city}, {employee.address.state} {employee.address.zipCode}</p>
-                  <p>{employee.address.country}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Emergency Contact */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Emergency Contact
-                </CardTitle>
-              </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Name</Label>
-                  <p>{employee.emergencyContact.name}</p>
+                  <Label className="text-sm font-medium text-gray-500">Current Address</Label>
+                  <p>{employee.currentAddress}</p>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Relationship</Label>
-                  <p>{employee.emergencyContact.relationship}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <p>{employee.emergencyContact.phone}</p>
-                  </div>
+                  <Label className="text-sm font-medium text-gray-500">Permanent Address</Label>
+                  <p>{employee.permanentAddress}</p>
                 </div>
               </CardContent>
             </Card>
+
+
           </div>
 
           {/* Leave Statistics */}

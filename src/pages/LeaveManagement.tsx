@@ -174,7 +174,7 @@ export const LeaveManagement: React.FC = () => {
                     <SelectContent>
                       {employees.map((employee) => (
                         <SelectItem key={employee.id} value={employee.id!}>
-                          {employee.firstName} {employee.lastName} - {employee.employeeId}
+                          {employee.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -255,14 +255,14 @@ export const LeaveManagement: React.FC = () => {
                 <div className="flex items-center gap-3 p-3 border rounded-lg">
                   <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                     <span className="text-gray-700 font-semibold text-xs">
-                      {getSelectedEmployee()?.firstName?.[0]}{getSelectedEmployee()?.lastName?.[0]}
+                      {getSelectedEmployee()?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">
-                      {getSelectedEmployee()?.firstName} {getSelectedEmployee()?.lastName}
+                      {getSelectedEmployee()?.name}
                     </p>
-                    <p className="text-xs text-gray-500">ID: {getSelectedEmployee()?.employeeId}</p>
+                    <p className="text-xs text-gray-500">Employee</p>
                   </div>
                 </div>
 

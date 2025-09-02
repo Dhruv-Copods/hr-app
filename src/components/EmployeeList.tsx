@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,18 +38,12 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
 
   // Table column configuration - simplified to show only essential data
   const tableColumns = [
-    {
-      key: 'employeeId',
-      label: 'Employee ID',
-      render: (employee: Employee) => (
-        <span className="font-medium text-gray-900">{employee.employeeId}</span>
-      )
-    },
+
     {
       key: 'name',
       label: 'Name',
       render: (employee: Employee) => (
-        <span className="text-gray-700 font-medium">{`${employee.firstName} ${employee.lastName}`}</span>
+        <span className="text-gray-700 font-medium">{employee.name}</span>
       )
     },
     {
@@ -60,21 +54,13 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
       )
     },
     {
-      key: 'position',
-      label: 'Position',
+      key: 'designation',
+      label: 'Designation',
       render: (employee: Employee) => (
-        <span className="text-gray-700">{employee.position}</span>
+        <span className="text-gray-700">{employee.designation}</span>
       )
     },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (employee: Employee) => (
-        <Badge variant={getStatusBadgeVariant(employee.status)} className="font-medium">
-          {employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}
-        </Badge>
-      )
-    },
+
     {
       key: 'actions',
       label: 'Actions',
@@ -135,18 +121,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'default';
-      case 'inactive':
-        return 'secondary';
-      case 'terminated':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
+
 
 
 
