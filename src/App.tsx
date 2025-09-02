@@ -1,8 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { AuthGuard } from '@/components/AuthGuard';
+import { Layout } from '@/components/Layout';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
+import { Employees } from '@/pages/Employees';
+import { Attendance } from '@/pages/Attendance';
+import { Reports } from '@/pages/Reports';
 
 function App() {
   return (
@@ -19,12 +23,47 @@ function App() {
             }
           />
 
-          {/* Protected routes - requires authentication */}
+          {/* Protected routes - requires authentication and uses Layout */}
           <Route
             path="/dashboard"
             element={
               <AuthGuard requireAuth={true}>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/employees"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <Employees />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/attendance"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <Attendance />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/reports"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <Reports />
+                </Layout>
               </AuthGuard>
             }
           />
