@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { EmployeeService } from '@/lib/employeeService';
@@ -32,9 +32,17 @@ export const LeaveManagement: React.FC = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Search functionality states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+
 
   const fetchEmployees = async () => {
     try {
@@ -90,8 +98,10 @@ export const LeaveManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedEmployee || !dateRange.from || !dateRange.to) {
-      alert('Please select an employee and date range');
+    // Check if a valid employee is selected
+    const selectedEmp = getSelectedEmployee();
+    if (!selectedEmp || !dateRange.from || !dateRange.to) {
+      alert('Please select a valid employee and date range');
       return;
     }
 
@@ -122,9 +132,12 @@ export const LeaveManagement: React.FC = () => {
 
       // Reset form
       setSelectedEmployee('');
+      setSearchQuery('');
       setDateRange({ from: undefined, to: undefined });
       setDaySelections({});
       setReason('');
+      setIsSearchOpen(false);
+      setSelectedIndex(-1);
 
       alert('Leave record created successfully!');
     } catch (error) {
@@ -136,6 +149,67 @@ export const LeaveManagement: React.FC = () => {
   };
 
 
+
+  // Filter employees based on search query
+  const filteredEmployees = employees.filter(employee =>
+    employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    employee.officialEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    employee.department?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+
+
+  // Handle employee selection from suggestions
+  const handleEmployeeSelect = (employee: Employee) => {
+    setSelectedEmployee(employee.id!);
+    setSearchQuery(employee.name);
+    setIsSearchOpen(false);
+    setSelectedIndex(-1);
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Only handle navigation keys when suggestions are open
+    if (!isSearchOpen) {
+      // Allow Escape to close suggestions even when not open
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        setSelectedIndex(-1);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev =>
+          prev < filteredEmployees.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < filteredEmployees.length) {
+          handleEmployeeSelect(filteredEmployees[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setIsSearchOpen(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedEmployee('');
+    setSearchQuery('');
+    setIsSearchOpen(false);
+    setSelectedIndex(-1);
+  };
 
   const getSelectedEmployee = () => {
     return employees.find(emp => emp.id === selectedEmployee);
@@ -167,18 +241,86 @@ export const LeaveManagement: React.FC = () => {
                 {/* Employee Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="employee">Employee</Label>
-                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id!}>
-                          {employee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                      <Input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Search employees by name, email, or department..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSearchQuery(value);
+                          setSelectedIndex(-1);
+                          setIsSearchOpen(value.length > 0);
+                        }}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => {
+                          if (searchQuery.length > 0) {
+                            setIsSearchOpen(true);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Don't close if clicking on suggestions
+                          const relatedTarget = e.relatedTarget as HTMLElement;
+                          if (relatedTarget && relatedTarget.closest('[data-suggestions]')) {
+                            return;
+                          }
+                          setTimeout(() => setIsSearchOpen(false), 100);
+                        }}
+                        className="pl-10 pr-10"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={clearSelection}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600 z-10"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Custom Suggestions Dropdown */}
+                    {isSearchOpen && (
+                      <div
+                        data-suggestions
+                        className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                      >
+                        {filteredEmployees.length > 0 ? (
+                          <div className="py-1">
+                            {filteredEmployees.map((employee, index) => (
+                              <button
+                                key={employee.id}
+                                type="button"
+                                className={cn(
+                                  "w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none flex items-center justify-between",
+                                  selectedIndex === index && "bg-blue-50"
+                                )}
+                                onClick={() => handleEmployeeSelect(employee)}
+                                onMouseEnter={() => setSelectedIndex(index)}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-900">{employee.name}</span>
+                                  <span className="text-sm text-gray-500">
+                                    {employee.officialEmail} • {employee.department}
+                                  </span>
+                                </div>
+                                {selectedEmployee === employee.id && (
+                                  <Check className="h-4 w-4 text-blue-600" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            No employees found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Date Range Selection */}
