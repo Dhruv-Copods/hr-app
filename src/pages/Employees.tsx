@@ -1,35 +1,51 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { EmployeeList } from '@/components/EmployeeList';
+import { EmployeeForm } from '@/components/EmployeeForm';
+import type { Employee } from '@/lib/types';
 
 export const Employees: React.FC = () => {
+  const [showForm, setShowForm] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleCreateEmployee = () => {
+    setEditingEmployee(null);
+    setShowForm(true);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setShowForm(true);
+  };
+
+  const handleFormClose = () => {
+    setShowForm(false);
+    setEditingEmployee(null);
+  };
+
+  const handleFormSuccess = () => {
+    setRefreshTrigger(prev => prev + 1); // Trigger refresh of employee list
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col h-full overflow-hidden">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
         <p className="mt-2 text-gray-600">Manage employee information and records</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            Employee Management
-          </CardTitle>
-          <CardDescription>
-            This feature is coming soon. You'll be able to manage employee profiles, departments, and more.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
-              <p className="text-gray-500">Employee management features are under development.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <EmployeeList
+        onEditEmployee={handleEditEmployee}
+        onCreateEmployee={handleCreateEmployee}
+        refreshTrigger={refreshTrigger}
+      />
+
+      <EmployeeForm
+        open={showForm}
+        onClose={handleFormClose}
+        employee={editingEmployee}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 };
