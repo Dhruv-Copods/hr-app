@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-1 px-3">
           {navigationItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.name}

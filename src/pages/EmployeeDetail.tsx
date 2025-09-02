@@ -158,9 +158,9 @@ export const EmployeeDetail: React.FC = () => {
   const stats = calculateLeaveStats();
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-shrink-0">
         <Button
           variant="outline"
           size="sm"
@@ -177,13 +177,13 @@ export const EmployeeDetail: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" className="flex-1 flex flex-col mt-6 h-full overflow-hidden">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="leave-history">Leave History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="flex-1 overflow-y-auto space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Basic Information */}
             <Card>
@@ -343,15 +343,15 @@ export const EmployeeDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="leave-history" className="space-y-6">
-          <Card>
-            <CardHeader>
+        <TabsContent value="leave-history" className="flex-1 flex flex-col h-full overflow-hidden">
+          <Card className="flex-1 flex flex-col min-h-0">
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Leave History</CardTitle>
               <CardDescription>
                 Complete history of leave requests and work-from-home records
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-y-auto">
               {leaveRecords.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
