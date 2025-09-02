@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Users, Clock, BarChart, LogOut } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -26,7 +27,10 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Employees</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Employees
+              </CardTitle>
               <CardDescription>Manage employee information</CardDescription>
             </CardHeader>
             <CardContent>
@@ -36,7 +40,10 @@ export const Dashboard: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Attendance</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Attendance
+              </CardTitle>
               <CardDescription>Track employee attendance</CardDescription>
             </CardHeader>
             <CardContent>
@@ -46,7 +53,10 @@ export const Dashboard: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Reports</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-5 w-5" />
+                Reports
+              </CardTitle>
               <CardDescription>Generate HR reports</CardDescription>
             </CardHeader>
             <CardContent>
@@ -84,6 +94,7 @@ export const Dashboard: React.FC = () => {
                 onClick={handleLogout}
                 className="mt-4"
               >
+                <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
             </div>
