@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   ArrowLeft,
   Mail,
@@ -15,12 +16,16 @@ import {
   Briefcase,
   AlertCircle,
   CheckCircle,
-  Clock,
-  XCircle
+  XCircle,
+  Home,
+  Coffee,
+  Sun,
+  CalendarDays,
+  BarChart3
 } from 'lucide-react';
 import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
-import type { Employee, LeaveRecord, LeaveDayType } from '@/lib/types';
+import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 
 export const EmployeeDetail: React.FC = () => {
@@ -30,6 +35,10 @@ export const EmployeeDetail: React.FC = () => {
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewType, setViewType] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
 
   useEffect(() => {
     if (id) {
@@ -66,16 +75,7 @@ export const EmployeeDetail: React.FC = () => {
 
 
 
-  const getLeaveDayTypeIcon = (type: LeaveDayType) => {
-    switch (type) {
-      case 'leave':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'wfh':
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'present':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-    }
-  };
+
 
 
 
@@ -89,23 +89,297 @@ export const EmployeeDetail: React.FC = () => {
 
   const calculateLeaveStats = () => {
     const currentYear = new Date().getFullYear();
+    const uniqueLeaveDates = new Set<string>();
+    const uniqueWfhDates = new Set<string>();
+
+    leaveRecords.forEach(record => {
+      Object.entries(record.days).forEach(([dateString, dayType]) => {
+        const recordYear = new Date(dateString).getFullYear();
+        if (recordYear === currentYear) {
+          // Parse date to check if it's a weekend
+          const date = new Date(dateString);
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+          
+          // Only count non-weekend days
+          if (!isWeekend) {
+            if (dayType === 'leave') uniqueLeaveDates.add(dateString);
+            if (dayType === 'wfh') uniqueWfhDates.add(dateString);
+          }
+        }
+      });
+    });
+
     const currentYearRecords = leaveRecords.filter(record => {
       const recordYear = new Date(record.startDate).getFullYear();
       return recordYear === currentYear;
     });
 
-    let totalLeaveDays = 0;
-    let totalWfhDays = 0;
+    return { 
+      totalLeaveDays: uniqueLeaveDates.size, 
+      totalWfhDays: uniqueWfhDates.size, 
+      totalRecords: currentYearRecords.length 
+    };
+  };
 
-    currentYearRecords.forEach(record => {
-      Object.values(record.days).forEach(dayType => {
-        if (dayType === 'leave') totalLeaveDays++;
-        if (dayType === 'wfh') totalWfhDays++;
+  const calculateMonthStats = () => {
+    const uniqueLeaveDates = new Set<string>();
+    const uniqueWfhDates = new Set<string>();
+
+    leaveRecords.forEach(record => {
+      Object.entries(record.days).forEach(([dateString, dayType]) => {
+        // Parse date more safely to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+
+        if (date.getMonth() === selectedMonth && date.getFullYear() === selectedYear) {
+          // Check if it's a weekend
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+          
+          // Only count non-weekend days
+          if (!isWeekend) {
+            if (dayType === 'leave') uniqueLeaveDates.add(dateString);
+            if (dayType === 'wfh') uniqueWfhDates.add(dateString);
+          }
+        }
       });
     });
 
-    return { totalLeaveDays, totalWfhDays, totalRecords: currentYearRecords.length };
+    return { 
+      monthLeaveDays: uniqueLeaveDates.size, 
+      monthWfhDays: uniqueWfhDates.size 
+    };
   };
+
+  const calculateQuarterStats = () => {
+    const uniqueLeaveDates = new Set<string>();
+    const uniqueWfhDates = new Set<string>();
+
+    // Calculate quarter start and end months
+    const quarterStartMonth = (selectedQuarter - 1) * 3;
+    const quarterEndMonth = quarterStartMonth + 2;
+
+    leaveRecords.forEach(record => {
+      Object.entries(record.days).forEach(([dateString, dayType]) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+
+        if (date.getFullYear() === selectedYear && 
+            date.getMonth() >= quarterStartMonth && 
+            date.getMonth() <= quarterEndMonth) {
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          
+          if (!isWeekend) {
+            if (dayType === 'leave') uniqueLeaveDates.add(dateString);
+            if (dayType === 'wfh') uniqueWfhDates.add(dateString);
+          }
+        }
+      });
+    });
+
+    return { 
+      quarterLeaveDays: uniqueLeaveDates.size, 
+      quarterWfhDays: uniqueWfhDates.size 
+    };
+  };
+
+  const calculateYearlyStats = () => {
+    const uniqueLeaveDates = new Set<string>();
+    const uniqueWfhDates = new Set<string>();
+
+    leaveRecords.forEach(record => {
+      Object.entries(record.days).forEach(([dateString, dayType]) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+
+        if (date.getFullYear() === selectedYear) {
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          
+          if (!isWeekend) {
+            if (dayType === 'leave') uniqueLeaveDates.add(dateString);
+            if (dayType === 'wfh') uniqueWfhDates.add(dateString);
+          }
+        }
+      });
+    });
+
+    return { 
+      yearlyLeaveDays: uniqueLeaveDates.size, 
+      yearlyWfhDays: uniqueWfhDates.size 
+    };
+  };
+
+  const getDayType = (date: Date) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+
+    // Check if it's a weekend
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return { type: 'weekend', icon: Sun, color: 'text-orange-500', bgColor: 'bg-orange-50' };
+    }
+
+    // Check leave records for this date
+    for (const record of leaveRecords) {
+      if (record.days[dateString]) {
+        const dayType = record.days[dateString];
+        switch (dayType) {
+          case 'leave':
+            return {
+              type: 'leave',
+              icon: XCircle,
+              color: 'text-red-600',
+              bgColor: 'bg-red-50',
+              borderColor: 'border-red-200'
+            };
+          case 'wfh':
+            return {
+              type: 'wfh',
+              icon: Home,
+              color: 'text-blue-600',
+              bgColor: 'bg-blue-50',
+              borderColor: 'border-blue-200'
+            };
+          case 'present':
+            return {
+              type: 'present',
+              icon: CheckCircle,
+              color: 'text-green-600',
+              bgColor: 'bg-green-50',
+              borderColor: 'border-green-200'
+            };
+        }
+      }
+    }
+
+    // Default - regular workday
+    return {
+      type: 'workday',
+      icon: Coffee,
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-50',
+      borderColor: 'border-gray-200'
+    };
+  };
+
+  const generateCalendarDays = () => {
+    const days = [];
+    const firstDay = new Date(selectedYear, selectedMonth, 1);
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+    const numberOfDays = lastDay.getDate();
+
+    // Add empty cells for days before the first day of the month
+    const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(null); // Empty cell
+    }
+
+    // Add all days of the month
+    for (let i = 1; i <= numberOfDays; i++) {
+      const currentDate = new Date(selectedYear, selectedMonth, i);
+      const dayType = getDayType(currentDate);
+
+      days.push({
+        date: currentDate,
+        isCurrentMonth: true,
+        ...dayType
+      });
+    }
+
+    return days;
+  };
+
+  const generateQuarterCalendar = () => {
+    const quarterStartMonth = (selectedQuarter - 1) * 3;
+    const months = [];
+
+    for (let i = 0; i < 3; i++) {
+      const monthIndex = quarterStartMonth + i;
+      const days = [];
+      const firstDay = new Date(selectedYear, monthIndex, 1);
+      const lastDay = new Date(selectedYear, monthIndex + 1, 0);
+      const numberOfDays = lastDay.getDate();
+
+      // Add empty cells for days before the first day of the month
+      const firstDayOfWeek = firstDay.getDay();
+      for (let j = 0; j < firstDayOfWeek; j++) {
+        days.push(null);
+      }
+
+      // Add all days of the month
+      for (let j = 1; j <= numberOfDays; j++) {
+        const currentDate = new Date(selectedYear, monthIndex, j);
+        const dayType = getDayType(currentDate);
+
+        days.push({
+          date: currentDate,
+          isCurrentMonth: true,
+          ...dayType
+        });
+      }
+
+      months.push({
+        monthIndex,
+        monthName: new Date(selectedYear, monthIndex, 1).toLocaleDateString('en-US', { month: 'long' }),
+        days
+      });
+    }
+
+    return months;
+  };
+
+  const generateYearlyCalendar = () => {
+    const months = [];
+
+    for (let i = 0; i < 12; i++) {
+      const days = [];
+      const firstDay = new Date(selectedYear, i, 1);
+      const lastDay = new Date(selectedYear, i + 1, 0);
+      const numberOfDays = lastDay.getDate();
+
+      // Add empty cells for days before the first day of the month
+      const firstDayOfWeek = firstDay.getDay();
+      for (let j = 0; j < firstDayOfWeek; j++) {
+        days.push(null);
+      }
+
+      // For yearly view, we'll show a simplified view with just the day numbers and types
+      for (let j = 1; j <= numberOfDays; j++) {
+        const currentDate = new Date(selectedYear, i, j);
+        const dayType = getDayType(currentDate);
+
+        days.push({
+          date: currentDate,
+          day: j,
+          ...dayType
+        });
+      }
+
+      months.push({
+        monthIndex: i,
+        monthName: new Date(selectedYear, i, 1).toLocaleDateString('en-US', { month: 'long' }),
+        days
+      });
+    }
+
+    return months;
+  };
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const quarters = [
+    { value: 1, label: 'Q1 (Jan-Mar)' },
+    { value: 2, label: 'Q2 (Apr-Jun)' },
+    { value: 3, label: 'Q3 (Jul-Sep)' },
+    { value: 4, label: 'Q4 (Oct-Dec)' }
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   if (loading) {
     return (
@@ -138,34 +412,84 @@ export const EmployeeDetail: React.FC = () => {
   }
 
   const stats = calculateLeaveStats();
+  const monthStats = calculateMonthStats();
+  const quarterStats = calculateQuarterStats();
+  const yearlyStats = calculateYearlyStats();
+
+  // Get current period stats based on view type
+  const getCurrentPeriodStats = () => {
+    switch (viewType) {
+      case 'monthly':
+        return {
+          leaveDays: monthStats.monthLeaveDays,
+          wfhDays: monthStats.monthWfhDays,
+          periodLabel: `${months[selectedMonth]} ${selectedYear}`
+        };
+      case 'quarterly':
+        return {
+          leaveDays: quarterStats.quarterLeaveDays,
+          wfhDays: quarterStats.quarterWfhDays,
+          periodLabel: `Q${selectedQuarter} ${selectedYear}`
+        };
+      case 'yearly':
+        return {
+          leaveDays: yearlyStats.yearlyLeaveDays,
+          wfhDays: yearlyStats.yearlyWfhDays,
+          periodLabel: `${selectedYear}`
+        };
+      default:
+        return {
+          leaveDays: monthStats.monthLeaveDays,
+          wfhDays: monthStats.monthWfhDays,
+          periodLabel: `${months[selectedMonth]} ${selectedYear}`
+        };
+    }
+  };
+
+  const currentPeriodStats = getCurrentPeriodStats();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4 flex-shrink-0">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Employee Avatar */}
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-lg font-semibold">
+            {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </div>
+          
+          {/* Employee Info */}
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {employee.name}
+              </h1>
+              <Badge variant="secondary" className="text-xs">
+                {employee.department}
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">{employee.designation}</p>
+          </div>
+        </div>
+        
+        {/* Action Button */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => navigate('/employees')}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Employees
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {employee.name}
-          </h1>
-          <p className="text-gray-600">Employee Details</p>
-        </div>
       </div>
 
-      <Tabs defaultValue="overview" className="flex-1 flex flex-col mt-6 h-full overflow-hidden">
+      <Tabs defaultValue="overview" className="pt-6 overflow-hidden h-full">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="leave-history">Leave History</TabsTrigger>
+          <TabsTrigger value="leave-history">Leave Calendar</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="flex-1 overflow-y-auto space-y-6">
+        <TabsContent value="overview" className="mt-3 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Basic Information */}
             <Card>
@@ -287,58 +611,268 @@ export const EmployeeDetail: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="leave-history" className="flex-1 flex flex-col h-full overflow-hidden">
-          <Card className="flex-1 flex flex-col min-h-0">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle>Leave History</CardTitle>
-              <CardDescription>
-                Complete history of leave requests and work-from-home records
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto">
+        <TabsContent value="leave-history" className="mt-3 space-y-4 flex flex-col overflow-hidden">
+          {/* Stats and Filters Row */}
+          <div className="flex items-center justify-between mb-4">
+            {/* Stats on Left */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-red-600">{currentPeriodStats.leaveDays}</div>
+                <div className="text-sm text-gray-600">
+                  Leaves {viewType === 'monthly' ? 'This Month' : viewType === 'quarterly' ? 'This Quarter' : 'This Year'}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-blue-600">{currentPeriodStats.wfhDays}</div>
+                <div className="text-sm text-gray-600">
+                  WFH Days {viewType === 'monthly' ? 'This Month' : viewType === 'quarterly' ? 'This Quarter' : 'This Year'}
+                </div>
+              </div>
+            </div>
+
+            {/* Filters on Right */}
+            <div className="flex gap-2 flex-wrap">
+              {/* View Type Selector */}
+              <Select value={viewType} onValueChange={(value: 'monthly' | 'quarterly' | 'yearly') => setViewType(value)}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Monthly
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="quarterly">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4" />
+                      Quarterly
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="yearly">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Yearly
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Period Selectors based on view type */}
+              {viewType === 'monthly' && (
+                <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {viewType === 'quarterly' && (
+                <Select value={selectedQuarter.toString()} onValueChange={(value) => setSelectedQuarter(parseInt(value))}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {quarters.map((quarter) => (
+                      <SelectItem key={quarter.value} value={quarter.value.toString()}>
+                        {quarter.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Calendar Grid */}
+          <Card className="overflow-auto flex-1">
+            <CardContent>
               {leaveRecords.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No leave records</h3>
-                  <p className="text-gray-500">This employee has no leave or WFH records yet.</p>
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="text-center">
+                    <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No leave records</h3>
+                    <p className="text-gray-500">This employee has no leave or WFH records yet.</p>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {leaveRecords.map((record) => (
-                    <div key={record.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-medium">
-                              {format(new Date(record.startDate), 'MMM dd, yyyy')} - {format(new Date(record.endDate), 'MMM dd, yyyy')}
-                            </h3>
-                            <Badge variant={record.approved ? 'default' : 'secondary'}>
-                              {record.approved ? 'Approved' : 'Pending'}
-                            </Badge>
-                          </div>
-                          {record.reason && (
-                            <p className="text-sm text-gray-600 mb-2">{record.reason}</p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            Created: {formatDate(record.createdAt!)}
-                            {record.approvedAt && ` • Approved: ${formatDate(record.approvedAt)}`}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {Object.entries(record.days).map(([date, type]) => (
-                          <div key={date} className="flex items-center gap-2 text-sm">
-                            {getLeaveDayTypeIcon(type)}
-                            <span>{format(new Date(date), 'EEE, MMM dd')}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {type.toUpperCase()}
-                            </Badge>
+                <div className="space-y-4 overflow-hidden h-full">
+                  {/* Monthly View */}
+                  {viewType === 'monthly' && (
+                    <div className="space-y-2">
+                      {/* Calendar Header */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                          <div key={day} className="p-1 text-center text-xs font-medium text-gray-500">
+                            {day}
                           </div>
                         ))}
                       </div>
+
+                      {/* Calendar Days - Responsive Grid */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {generateCalendarDays().map((day, index) => {
+                          if (day === null) {
+                            return (
+                              <div
+                                key={index}
+                                className="min-h-[60px] flex items-center justify-center"
+                              ></div>
+                            );
+                          }
+
+                          const IconComponent = day.icon;
+                          return (
+                            <div
+                              key={index}
+                              className={`
+                                relative p-1.5 border rounded-md min-h-[60px] flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md hover:scale-105 cursor-pointer
+                                ${day.bgColor} ${day.borderColor}
+                              `}
+                            >
+                              <div className="text-xs font-semibold mb-0.5">
+                                {format(day.date, 'd')}
+                              </div>
+                              <IconComponent className={`w-3 h-3 mb-0.5 ${day.color}`} />
+                              <div className="text-[10px] text-center opacity-75 leading-tight">
+                                {day.type === 'weekend' ? 'Weekend' :
+                                 day.type === 'leave' ? 'Leave' :
+                                 day.type === 'wfh' ? 'WFH' :
+                                 day.type === 'present' ? 'Present' : 'Work'}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Quarterly View */}
+                  {viewType === 'quarterly' && (
+                    <div className="space-y-6">
+                      {generateQuarterCalendar().map((month, monthIndex) => (
+                        <div key={monthIndex} className="border rounded-lg p-4">
+                          <h3 className="text-lg font-semibold mb-3 text-center">{month.monthName}</h3>
+                          
+                          {/* Month Calendar Header */}
+                          <div className="grid grid-cols-7 gap-1 mb-2">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                              <div key={day} className="p-1 text-center text-xs font-medium text-gray-500">
+                                {day}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Month Calendar Days */}
+                          <div className="grid grid-cols-7 gap-1">
+                            {month.days.map((day, dayIndex) => {
+                              if (day === null) {
+                                return (
+                                  <div
+                                    key={dayIndex}
+                                    className="min-h-[40px] flex items-center justify-center"
+                                  ></div>
+                                );
+                              }
+
+                              const IconComponent = day.icon;
+                              return (
+                                <div
+                                  key={dayIndex}
+                                  className={`
+                                    relative p-1 border rounded min-h-[40px] flex flex-col items-center justify-center transition-all duration-200 hover:shadow-sm hover:scale-105 cursor-pointer
+                                    ${day.bgColor} ${day.borderColor}
+                                  `}
+                                >
+                                  <div className="text-xs font-semibold mb-0.5">
+                                    {format(day.date, 'd')}
+                                  </div>
+                                  <IconComponent className={`w-2.5 h-2.5 ${day.color}`} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Yearly View */}
+                  {viewType === 'yearly' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {generateYearlyCalendar().map((month, monthIndex) => (
+                        <div key={monthIndex} className="border rounded-lg p-3 bg-white">
+                          <h4 className="text-sm font-semibold mb-3 text-center text-gray-800">{month.monthName}</h4>
+                          
+                          {/* Mini month grid - Fixed width and consistent spacing */}
+                          <div className="w-full">
+                            {/* Mini header - Fixed height and consistent spacing */}
+                            <div className="grid grid-cols-7 gap-px mb-1">
+                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                                <div key={idx} className="text-[10px] text-center text-gray-500 font-medium h-4 flex items-center justify-center">
+                                  {day}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Month days - Grid with consistent cell sizes */}
+                            <div className="grid grid-cols-7 gap-px">
+                              {month.days.map((day, dayIndex) => {
+                                if (day === null) {
+                                  return (
+                                    <div key={dayIndex} className="aspect-square w-full min-h-[20px] flex items-center justify-center"></div>
+                                  );
+                                }
+                                
+                                return (
+                                  <div
+                                    key={dayIndex}
+                                    className={`
+                                      aspect-square w-full min-h-[20px] text-[9px] rounded-sm flex items-center justify-center cursor-pointer font-medium border
+                                      ${day.bgColor || 'bg-white'} ${day.color || 'text-gray-700'} ${day.borderColor || 'border-gray-200'}
+                                      hover:shadow-sm hover:scale-105 transition-all duration-150
+                                    `}
+                                    title={`${format(day.date, 'MMM d')}: ${
+                                      day.type === 'weekend' ? 'Weekend' :
+                                      day.type === 'leave' ? 'Leave' :
+                                      day.type === 'wfh' ? 'WFH' :
+                                      day.type === 'present' ? 'Present' : 'Work'
+                                    }`}
+                                  >
+                                    {day.type === 'leave' ? 'L' :
+                                     day.type === 'wfh' ? 'W' :
+                                     day.type === 'present' ? '✓' :
+                                     day.type === 'weekend' ? '·' : day.day}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
