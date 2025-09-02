@@ -5,6 +5,8 @@ import { Layout } from '@/components/Layout';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
 import { Employees } from '@/pages/Employees';
+import { EmployeeDetail } from '@/pages/EmployeeDetail';
+import { LeaveManagement } from '@/pages/LeaveManagement';
 import { Attendance } from '@/pages/Attendance';
 import { Reports } from '@/pages/Reports';
 
@@ -41,6 +43,28 @@ function App() {
               <AuthGuard requireAuth={true}>
                 <Layout>
                   <Employees />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/employees/:id"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <EmployeeDetail />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/leave-management"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <LeaveManagement />
                 </Layout>
               </AuthGuard>
             }

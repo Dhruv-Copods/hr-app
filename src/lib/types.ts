@@ -66,3 +66,28 @@ export const POSITIONS = [
 
 export type Department = typeof DEPARTMENTS[number];
 export type Position = typeof POSITIONS[number];
+
+// Leave Management Types
+export type LeaveDayType = 'leave' | 'wfh' | 'present';
+
+export interface LeaveRecord {
+  id?: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  days: {
+    [date: string]: LeaveDayType; // Date in YYYY-MM-DD format
+  };
+  reason?: string;
+  approved: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateLeaveRecordData extends Omit<LeaveRecord, 'id' | 'createdAt' | 'updatedAt' | 'approved' | 'approvedBy' | 'approvedAt'> {
+  approved?: boolean;
+}
+
+export interface UpdateLeaveRecordData extends Partial<Omit<LeaveRecord, 'id' | 'createdAt'>> {}

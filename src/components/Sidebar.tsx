@@ -8,6 +8,7 @@ import {
   Users,
   Clock,
   BarChart3,
+  Calendar,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,11 @@ const navigationItems = [
     name: 'Employees',
     href: '/employees',
     icon: Users,
+  },
+  {
+    name: 'Leave Management',
+    href: '/leave-management',
+    icon: Calendar,
   },
   {
     name: 'Attendance',

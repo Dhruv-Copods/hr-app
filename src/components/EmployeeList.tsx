@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TableBody,
   TableCell,
@@ -30,11 +31,12 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   onCreateEmployee,
   refreshTrigger
 }) => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Table column configuration
+  // Table column configuration - simplified to show only essential data
   const tableColumns = [
     {
       key: 'employeeId',
@@ -47,14 +49,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
       key: 'name',
       label: 'Name',
       render: (employee: Employee) => (
-        <span className="text-gray-700">{`${employee.firstName} ${employee.lastName}`}</span>
-      )
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      render: (employee: Employee) => (
-        <span className="text-gray-600">{employee.email}</span>
+        <span className="text-gray-700 font-medium">{`${employee.firstName} ${employee.lastName}`}</span>
       )
     },
     {
@@ -78,20 +73,6 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
         <Badge variant={getStatusBadgeVariant(employee.status)} className="font-medium">
           {employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}
         </Badge>
-      )
-    },
-    {
-      key: 'hireDate',
-      label: 'Hire Date',
-      render: (employee: Employee) => (
-        <span className="text-gray-600">{formatDate(employee.hireDate)}</span>
-      )
-    },
-    {
-      key: 'salary',
-      label: 'Salary',
-      render: (employee: Employee) => (
-        <span className="text-gray-700 font-medium">{formatCurrency(employee.salary)}</span>
       )
     },
     {
@@ -167,20 +148,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   if (loading) {
     return (
@@ -252,14 +220,16 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
                     <TableRow
                       key={employee.id}
                       className={`
-                        hover:bg-gray-50/50 transition-colors
+                        hover:bg-gray-50/50 transition-colors cursor-pointer
                         ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/20'}
                       `}
+                      onClick={() => employee.id && navigate(`/employees/${employee.id}`)}
                     >
                       {tableColumns.map((column) => (
-                        <TableCell 
+                        <TableCell
                           key={column.key}
                           className="px-6 py-4 border-b border-gray-200"
+                          onClick={column.key === 'actions' ? (e) => e.stopPropagation() : undefined} // Only prevent row click for actions column
                         >
                           {column.render(employee)}
                         </TableCell>
