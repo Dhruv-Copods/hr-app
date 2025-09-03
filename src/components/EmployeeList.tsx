@@ -16,9 +16,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EmployeeService } from '@/lib/employeeService';
 import type { Employee } from '@/lib/types';
 import { MoreHorizontal, Edit, Trash2, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EmployeeListProps {
   onEditEmployee: (employee: Employee) => void;
@@ -35,6 +37,8 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Table column configuration - simplified to show only essential data
   const tableColumns = [
@@ -108,16 +112,24 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     fetchEmployees();
   }, [refreshTrigger]);
 
-  const handleDeleteEmployee = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteEmployee = (id: string) => {
+    setDeleteEmployeeId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteEmployee = async () => {
+    if (!deleteEmployeeId) return;
 
     try {
-      await EmployeeService.deleteEmployee(id);
+      await EmployeeService.deleteEmployee(deleteEmployeeId);
       await fetchEmployees(); // Refresh the list
+      toast.success('Employee deleted successfully');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete employee');
+      console.error('Error deleting employee:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to delete employee');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteEmployeeId(null);
     }
   };
 
@@ -154,6 +166,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
   }
 
   return (
+    <>
     <Card className='shadow-none overflow-hidden' >
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
@@ -218,5 +231,28 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
         )}
       </CardContent>
     </Card>
+
+    {/* Delete Confirmation Modal */}
+    <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Employee</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-gray-600">
+            Are you sure you want to delete this employee? This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={confirmDeleteEmployee}>
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };

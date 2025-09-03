@@ -19,7 +19,6 @@ import {
   User,
   Building,
   Briefcase,
-  AlertCircle,
   XCircle,
   Home,
   Edit,
@@ -31,6 +30,7 @@ import { LeaveService } from '@/lib/leaveService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,9 +38,10 @@ export const EmployeeDetail: React.FC = () => {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
@@ -60,7 +61,6 @@ export const EmployeeDetail: React.FC = () => {
 
     try {
       setLoading(true);
-      setError(null);
 
       const [employeeData, leaveData] = await Promise.all([
         EmployeeService.getEmployeeById(id),
@@ -68,14 +68,16 @@ export const EmployeeDetail: React.FC = () => {
       ]);
 
       if (!employeeData) {
-        setError('Employee not found');
+        toast.error('Employee not found');
+        navigate('/employees');
         return;
       }
 
       setEmployee(employeeData);
       setLeaveRecords(leaveData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch employee data');
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch employee data');
+      navigate('/employees');
     } finally {
       setLoading(false);
     }
@@ -160,26 +162,36 @@ export const EmployeeDetail: React.FC = () => {
 
       setIsEditModalOpen(false);
       setEditingRecord(null);
+      toast.success('Leave record updated successfully');
     } catch (error) {
       console.error('Error updating leave record:', error);
-      setError(error instanceof Error ? error.message : 'Failed to update leave record');
+      toast.error(error instanceof Error ? error.message : 'Failed to update leave record');
     }
   };
 
-  const handleDeleteLeave = async (recordId: string) => {
-    if (!confirm('Are you sure you want to delete this leave record?')) return;
+  const handleDeleteLeave = (recordId: string) => {
+    setDeleteRecordId(recordId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteLeave = async () => {
+    if (!deleteRecordId) return;
 
     try {
-      await LeaveService.deleteLeaveRecord(recordId);
+      await LeaveService.deleteLeaveRecord(deleteRecordId);
 
       // Refresh leave records
       if (id) {
         const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(id);
         setLeaveRecords(updatedRecords);
       }
+      toast.success('Leave record deleted successfully');
     } catch (error) {
       console.error('Error deleting leave record:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete leave record');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete leave record');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteRecordId(null);
     }
   };
 
@@ -204,23 +216,8 @@ export const EmployeeDetail: React.FC = () => {
     );
   }
 
-  if (error || !employee) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {error || 'Employee not found'}
-            </h3>
-            <Button onClick={() => navigate('/employees')} className="mt-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Employees
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!employee) {
+    return null; // Will redirect due to error handling in useEffect
   }
 
   const stats = calculateLeaveStats();
@@ -500,6 +497,28 @@ export const EmployeeDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Delete Confirmation Modal */}
+          <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete Leave Record</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-gray-600">
+                  Are you sure you want to delete this leave record? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={confirmDeleteLeave}>
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Edit Leave Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

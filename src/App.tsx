@@ -9,6 +9,7 @@ import { EmployeeDetail } from '@/pages/EmployeeDetail';
 import { LeaveManagement } from '@/pages/LeaveManagement';
 import { Attendance } from '@/pages/Attendance';
 import { Reports } from '@/pages/Reports';
+import { Toaster } from '@/components/ui/sonner';
 
 function App() {
   return (
@@ -113,6 +114,7 @@ function App() {
           />
         </Routes>
       </Router>
+      <Toaster />
     </AuthProvider>
   );
 }

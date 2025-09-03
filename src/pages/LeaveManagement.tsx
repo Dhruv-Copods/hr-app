@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord } from '@/lib/types';
@@ -151,12 +152,12 @@ export const LeaveManagement: React.FC = () => {
     // Check if a valid employee is selected
     const selectedEmp = getSelectedEmployee();
     if (!selectedEmp || !dateRange.from || !dateRange.to) {
-      alert('Please select a valid employee and date range');
+      toast.error('Please select a valid employee and date range');
       return;
     }
 
     if (Object.keys(daySelections).length === 0) {
-      alert('Please select at least one day');
+      toast.error('Please select at least one day');
       return;
     }
 
@@ -189,10 +190,10 @@ export const LeaveManagement: React.FC = () => {
       setIsSearchOpen(false);
       setSelectedIndex(-1);
 
-      alert('Leave record created successfully!');
+      toast.success('Leave record created successfully!');
     } catch (error) {
       console.error('Error creating leave record:', error);
-      alert('Failed to create leave record. Please try again.');
+      toast.error('Failed to create leave record. Please try again.');
     } finally {
       setSubmitting(false);
     }
