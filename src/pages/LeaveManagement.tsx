@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
-import type { Employee, LeaveDayType, CreateLeaveRecordData } from '@/lib/types';
+import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord } from '@/lib/types';
 
 interface DateRange {
   from: Date | undefined;
@@ -31,6 +31,7 @@ export const LeaveManagement: React.FC = () => {
   const [daySelections, setDaySelections] = useState<DaySelection>({});
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [existingLeaveRecords, setExistingLeaveRecords] = useState<LeaveRecord[]>([]);
 
   // Search functionality states
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +52,50 @@ export const LeaveManagement: React.FC = () => {
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
+  };
+
+  const fetchExistingLeaveRecords = async (employeeId: string) => {
+    try {
+      const records = await LeaveService.getLeaveRecordsByEmployee(employeeId);
+      setExistingLeaveRecords(records);
+    } catch (error) {
+      console.error('Error fetching existing leave records:', error);
+    }
+  };
+
+  const isDateDisabled = (date: Date): boolean => {
+    const dateKey = format(date, 'yyyy-MM-dd');
+
+    // Check if this date falls within any existing leave record
+    for (const record of existingLeaveRecords) {
+      const recordStart = new Date(record.startDate);
+      const recordEnd = new Date(record.endDate);
+
+      // If date is within the record's date range
+      if (date >= recordStart && date <= recordEnd) {
+        // Check if this specific date has leave or wfh
+        const dayType = record.days[dateKey];
+        if (dayType === 'leave' || dayType === 'wfh') {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const hasConflictingDates = (): boolean => {
+    if (!dateRange.from || !dateRange.to) return false;
+
+    const current = new Date(dateRange.from);
+    while (current <= dateRange.to) {
+      if (isDateDisabled(current)) {
+        return true;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return false;
   };
 
   const handleDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
@@ -81,6 +126,11 @@ export const LeaveManagement: React.FC = () => {
 
   const getDayTypeBadge = (type: LeaveDayType, date: Date) => {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
+    const isDisabled = isDateDisabled(date);
+
+    if (isDisabled) {
+      return <Badge className="bg-red-100 text-red-800 border-red-200">Already Booked</Badge>;
+    }
 
     if (isWeekend) {
       return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Weekend</Badge>;
@@ -165,6 +215,10 @@ export const LeaveManagement: React.FC = () => {
     setSearchQuery(employee.name);
     setIsSearchOpen(false);
     setSelectedIndex(-1);
+    // Fetch existing leave records for this employee
+    if (employee.id) {
+      fetchExistingLeaveRecords(employee.id);
+    }
   };
 
   // Handle keyboard navigation
@@ -209,6 +263,7 @@ export const LeaveManagement: React.FC = () => {
     setSearchQuery('');
     setIsSearchOpen(false);
     setSelectedIndex(-1);
+    setExistingLeaveRecords([]);
   };
 
   const getSelectedEmployee = () => {
@@ -358,6 +413,10 @@ export const LeaveManagement: React.FC = () => {
                         selected={dateRange}
                         onSelect={handleDateSelect}
                         numberOfMonths={2}
+                        disabled={isDateDisabled}
+                        classNames={{
+                          disabled: "bg-red-100 text-red-800 font-semibold hover:bg-red-200",
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -378,9 +437,9 @@ export const LeaveManagement: React.FC = () => {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={submitting || !selectedEmployee || !dateRange.from || !dateRange.to}
+                  disabled={submitting || !selectedEmployee || !dateRange.from || !dateRange.to || hasConflictingDates()}
                 >
-                  {submitting ? 'Creating...' : 'Create Leave Record'}
+                  {submitting ? 'Creating...' : hasConflictingDates() ? 'Cannot Create - Conflicting Dates' : 'Create Leave Record'}
                 </Button>
               </form>
             </CardContent>
@@ -516,10 +575,13 @@ export const LeaveManagement: React.FC = () => {
                     const dayType = daySelections[dateKey] || 'leave';
                     const currentDate = new Date(current); // Create a copy of the current date
                     const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6; // 0 = Sunday, 6 = Saturday
+                    const isDisabled = isDateDisabled(currentDate);
 
                     days.push(
                       <div key={dateKey} className={`flex items-center justify-between p-3 border rounded-lg ${
                         isWeekend ? 'bg-orange-50 border-orange-200' : ''
+                      } ${
+                        isDisabled ? 'bg-red-50 border-red-200' : ''
                       }`}>
                         <div className="flex items-center gap-3">
                           <span className={`font-medium ${isWeekend ? 'text-orange-800' : ''}`}>
@@ -533,7 +595,7 @@ export const LeaveManagement: React.FC = () => {
                             variant={dayType === 'leave' ? 'default' : 'outline'}
                             className={dayType === 'leave' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : ''}
                             onClick={() => handleDayTypeChange(currentDate, 'leave')}
-                            disabled={isWeekend}
+                            disabled={isWeekend || isDisabled}
                           >
                             Leave
                           </Button>
@@ -542,7 +604,7 @@ export const LeaveManagement: React.FC = () => {
                             variant={dayType === 'wfh' ? 'default' : 'outline'}
                             className={dayType === 'wfh' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : ''}
                             onClick={() => handleDayTypeChange(currentDate, 'wfh')}
-                            disabled={isWeekend}
+                            disabled={isWeekend || isDisabled}
                           >
                             WFH
                           </Button>
