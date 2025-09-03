@@ -9,6 +9,7 @@ import { EmployeeDetail } from '@/pages/EmployeeDetail';
 import { LeaveManagement } from '@/pages/LeaveManagement';
 import { Attendance } from '@/pages/Attendance';
 import { Reports } from '@/pages/Reports';
+import { Settings } from '@/pages/Settings';
 import { Toaster } from '@/components/ui/sonner';
 
 function App() {
@@ -88,6 +89,17 @@ function App() {
               <AuthGuard requireAuth={true}>
                 <Layout>
                   <Reports />
+                </Layout>
+              </AuthGuard>
+            }
+          />
+
+          <Route
+            path="/settings"
+            element={
+              <AuthGuard requireAuth={true}>
+                <Layout>
+                  <Settings />
                 </Layout>
               </AuthGuard>
             }

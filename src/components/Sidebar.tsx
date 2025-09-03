@@ -9,7 +9,8 @@ import {
   Clock,
   BarChart3,
   Calendar,
-  LogOut
+  LogOut,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,11 @@ const navigationItems = [
     name: 'Reports',
     href: '/reports',
     icon: BarChart3,
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: SettingsIcon,
   },
 ];
 

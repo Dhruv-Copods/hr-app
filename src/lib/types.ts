@@ -77,3 +77,27 @@ export interface CreateLeaveRecordData extends Omit<LeaveRecord, 'id' | 'created
 }
 
 export interface UpdateLeaveRecordData extends Partial<Omit<LeaveRecord, 'id' | 'createdAt'>> {}
+
+// Holiday Types
+export type HolidayType = 'government' | 'optional';
+
+export interface Holiday {
+  id: string;
+  date: string; // YYYY-MM-DD format
+  name: string;
+  type: HolidayType;
+  description?: string;
+}
+
+export interface CreateHolidayData extends Omit<Holiday, 'id'> {}
+
+// Settings Types
+export interface CompanySettings {
+  ptoYearly: number;
+  ptoMonthly: number;
+  wfhYearly: number;
+  wfhMonthly: number;
+  holidays: Holiday[];
+  updatedAt?: string;
+  updatedBy?: string;
+}
