@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
 import {
   ArrowLeft,
   Mail,
   MapPin,
-  Calendar,
   User,
   Building,
   Briefcase,
@@ -21,12 +26,16 @@ import {
   Coffee,
   Sun,
   CalendarDays,
-  BarChart3
+  BarChart3,
+  Edit,
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +48,14 @@ export const EmployeeDetail: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
+  const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    startDate: undefined as Date | undefined,
+    endDate: undefined as Date | undefined,
+    reason: '',
+    days: {} as { [date: string]: 'leave' | 'wfh' | 'present' }
+  });
 
   useEffect(() => {
     if (id) {
@@ -381,6 +398,69 @@ export const EmployeeDetail: React.FC = () => {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
+  const openEditModal = (record: LeaveRecord) => {
+    setEditingRecord(record);
+    setEditFormData({
+      startDate: new Date(record.startDate),
+      endDate: new Date(record.endDate),
+      reason: record.reason || '',
+      days: { ...record.days }
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingRecord || !editFormData.startDate || !editFormData.endDate) return;
+
+    try {
+      await LeaveService.updateLeaveRecord(editingRecord.id!, {
+        startDate: format(editFormData.startDate, 'yyyy-MM-dd'),
+        endDate: format(editFormData.endDate, 'yyyy-MM-dd'),
+        reason: editFormData.reason,
+        days: editFormData.days
+      });
+
+      // Refresh leave records
+      if (id) {
+        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(id);
+        setLeaveRecords(updatedRecords);
+      }
+
+      setIsEditModalOpen(false);
+      setEditingRecord(null);
+    } catch (error) {
+      console.error('Error updating leave record:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update leave record');
+    }
+  };
+
+  const handleDeleteLeave = async (recordId: string) => {
+    if (!confirm('Are you sure you want to delete this leave record?')) return;
+
+    try {
+      await LeaveService.deleteLeaveRecord(recordId);
+
+      // Refresh leave records
+      if (id) {
+        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(id);
+        setLeaveRecords(updatedRecords);
+      }
+    } catch (error) {
+      console.error('Error deleting leave record:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete leave record');
+    }
+  };
+
+  const handleDateChange = (date: string, dayType: 'leave' | 'wfh' | 'present') => {
+    setEditFormData(prev => ({
+      ...prev,
+      days: {
+        ...prev.days,
+        [date]: dayType
+      }
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -486,6 +566,7 @@ export const EmployeeDetail: React.FC = () => {
       <Tabs defaultValue="overview" className="pt-6 overflow-hidden h-full">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="manage-leaves">Manage Leaves</TabsTrigger>
           <TabsTrigger value="leave-history">Leave Calendar</TabsTrigger>
         </TabsList>
 
@@ -548,7 +629,7 @@ export const EmployeeDetail: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Date of Joining</Label>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <CalendarIcon className="h-4 w-4 text-gray-400" />
                     <p>{formatDate(employee.dateOfJoining)}</p>
                   </div>
                 </div>
@@ -556,7 +637,7 @@ export const EmployeeDetail: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <CalendarIcon className="h-4 w-4 text-gray-400" />
                     <p>{formatDate(employee.dateOfBirth)}</p>
                   </div>
                 </div>
@@ -640,7 +721,7 @@ export const EmployeeDetail: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="monthly">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
+                      <CalendarIcon className="h-4 w-4" />
                       Monthly
                     </div>
                   </SelectItem>
@@ -711,7 +792,7 @@ export const EmployeeDetail: React.FC = () => {
               {leaveRecords.length === 0 ? (
                 <div className="flex items-center justify-center min-h-[400px]">
                   <div className="text-center">
-                    <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <CalendarIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No leave records</h3>
                     <p className="text-gray-500">This employee has no leave or WFH records yet.</p>
                   </div>
@@ -877,6 +958,266 @@ export const EmployeeDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="manage-leaves" className="mt-3 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Leave Records
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {leaveRecords.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No leave records</h3>
+                    <p className="text-gray-500">This employee has no leave records yet.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Days</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Created On</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaveRecords.map((record) => {
+                        const leaveDays = Object.values(record.days).filter(day => day === 'leave').length;
+                        const wfhDays = Object.values(record.days).filter(day => day === 'wfh').length;
+                        const totalDays = leaveDays + wfhDays;
+
+                        // Calculate actual period from leave days
+                        const leaveDates = Object.keys(record.days).sort();
+                        const actualStartDate = leaveDates.length > 0 ? leaveDates[0] : record.startDate;
+                        const actualEndDate = leaveDates.length > 0 ? leaveDates[leaveDates.length - 1] : record.endDate;
+
+                        return (
+                          <TableRow key={record.id}>
+                            <TableCell>
+                              <div className="text-sm font-medium">
+                                {format(new Date(actualStartDate), 'MMM d, yyyy')} - {format(new Date(actualEndDate), 'MMM d, yyyy')}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-2">
+                                {leaveDays > 0 && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    {leaveDays} Leave
+                                  </Badge>
+                                )}
+                                {wfhDays > 0 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {wfhDays} WFH
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm font-medium">{totalDays} days</div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={record.approved ? "default" : "outline"}>
+                                {record.approved ? 'Approved' : 'Pending'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600 max-w-xs truncate">
+                                {record.reason || 'No reason provided'}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600">
+                                {record.createdAt ? format(new Date(record.createdAt), 'MMM d, yyyy') : 'N/A'}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => openEditModal(record)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                  onClick={() => handleDeleteLeave(record.id!)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Edit Leave Modal */}
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Edit Leave Record</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !editFormData.startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {editFormData.startDate ? (
+                            format(editFormData.startDate, "PPP")
+                          ) : (
+                            <span>Pick start date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editFormData.startDate}
+                          onSelect={(date) => setEditFormData(prev => ({ ...prev, startDate: date }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label>End Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !editFormData.endDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {editFormData.endDate ? (
+                            format(editFormData.endDate, "PPP")
+                          ) : (
+                            <span>Pick end date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editFormData.endDate}
+                          onSelect={(date) => setEditFormData(prev => ({ ...prev, endDate: date }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="reason">Reason</Label>
+                  <Textarea
+                    id="reason"
+                    value={editFormData.reason}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, reason: e.target.value }))}
+                    placeholder="Enter reason for leave..."
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <Label>Days Configuration</Label>
+                  <div className="mt-2 flex-1 min-h-0">
+                    <div className="border rounded-lg p-4 max-h-80 overflow-y-auto">
+                      {Object.keys(editFormData.days).length === 0 ? (
+                        <p className="text-sm text-gray-500">No days configured yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {Object.entries(editFormData.days)
+                            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                            .map(([date, dayType]) => (
+                            <div key={date} className="flex items-center gap-4 p-3 border rounded-lg">
+                              <div className="text-sm font-medium">
+                                {format(new Date(date), 'MMM d, yyyy')}
+                              </div>
+                              <Select
+                                value={dayType}
+                                onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="leave">
+                                    <div className="flex items-center gap-2">
+                                      <XCircle className="h-4 w-4 text-red-500" />
+                                      Leave
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="wfh">
+                                    <div className="flex items-center gap-2">
+                                      <Home className="h-4 w-4 text-blue-500" />
+                                      WFH
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const newDays = { ...editFormData.days };
+                                  delete newDays[date];
+                                  setEditFormData(prev => ({ ...prev, days: newDays }));
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleEditSubmit}>
+                  Save Changes
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>
