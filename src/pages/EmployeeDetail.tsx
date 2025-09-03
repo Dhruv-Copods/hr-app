@@ -62,16 +62,16 @@ export const EmployeeDetail: React.FC = () => {
     try {
       setLoading(true);
 
-      const [employeeData, leaveData] = await Promise.all([
-        EmployeeService.getEmployeeById(id),
-        LeaveService.getLeaveRecordsByEmployee(id)
-      ]);
+      const employeeData = await EmployeeService.getEmployeeById(id);
 
       if (!employeeData) {
         toast.error('Employee not found');
         navigate('/employees');
         return;
       }
+
+      // Fetch leave records using the employee's employeeId
+      const leaveData = await LeaveService.getLeaveRecordsByEmployee(employeeData.employeeId);
 
       setEmployee(employeeData);
       setLeaveRecords(leaveData);
@@ -155,8 +155,8 @@ export const EmployeeDetail: React.FC = () => {
       });
 
       // Refresh leave records
-      if (id) {
-        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(id);
+      if (employee) {
+        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(employee.employeeId);
         setLeaveRecords(updatedRecords);
       }
 
@@ -181,8 +181,8 @@ export const EmployeeDetail: React.FC = () => {
       await LeaveService.deleteLeaveRecord(deleteRecordId);
 
       // Refresh leave records
-      if (id) {
-        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(id);
+      if (employee) {
+        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(employee.employeeId);
         setLeaveRecords(updatedRecords);
       }
       toast.success('Leave record deleted successfully');
@@ -454,8 +454,8 @@ export const EmployeeDetail: React.FC = () => {
                               <div className="text-sm font-medium">{totalDays} days</div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={record.approved ? "default" : "outline"}>
-                                {record.approved ? 'Approved' : 'Pending'}
+                              <Badge variant="default">
+                                Active
                               </Badge>
                             </TableCell>
                             <TableCell>

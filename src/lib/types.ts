@@ -1,6 +1,6 @@
 export interface Employee {
   id?: string;
-  uniqueId: string; // Auto-generated unique ID for database purposes
+  employeeId: string; // Auto-generated unique employee ID
   name: string;
   department: string;
   designation: string;
@@ -14,7 +14,7 @@ export interface Employee {
   updatedAt?: string;
 }
 
-export interface CreateEmployeeData extends Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'uniqueId'> {}
+export interface CreateEmployeeData extends Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'employeeId'> {}
 export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {}
 
 export const DEPARTMENTS = [
@@ -58,23 +58,21 @@ export type LeaveDayType = 'leave' | 'wfh' | 'present';
 
 export interface LeaveRecord {
   id?: string;
-  employeeId: string;
+  employeeId: string; // References Employee.employeeId field
   startDate: string;
   endDate: string;
   days: {
     [date: string]: LeaveDayType; // Date in YYYY-MM-DD format
   };
   reason?: string;
-  approved: boolean;
+  approved?: boolean; // Optional since we're not using approval workflow
   approvedBy?: string;
   approvedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface CreateLeaveRecordData extends Omit<LeaveRecord, 'id' | 'createdAt' | 'updatedAt' | 'approved' | 'approvedBy' | 'approvedAt'> {
-  approved?: boolean;
-}
+export interface CreateLeaveRecordData extends Omit<LeaveRecord, 'id' | 'createdAt' | 'updatedAt' | 'approved' | 'approvedBy' | 'approvedAt'> {}
 
 export interface UpdateLeaveRecordData extends Partial<Omit<LeaveRecord, 'id' | 'createdAt'>> {}
 

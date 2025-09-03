@@ -16,7 +16,7 @@ import type { Employee, CreateEmployeeData, UpdateEmployeeData } from './types';
 const COLLECTION_NAME = 'employees';
 
 export class EmployeeService {
-  private static generateUniqueId(): string {
+  private static generateEmployeeId(): string {
     const timestamp = Date.now().toString(36);
     const randomString = Math.random().toString(36).substr(2, 5);
     return `EMP-${timestamp}-${randomString}`.toUpperCase();
@@ -66,10 +66,10 @@ export class EmployeeService {
   static async createEmployee(employeeData: CreateEmployeeData): Promise<Employee> {
     try {
       const now = Timestamp.now();
-      const uniqueId = this.generateUniqueId();
+      const employeeId = this.generateEmployeeId();
       const docData = {
         ...employeeData,
-        uniqueId,
+        employeeId,
         createdAt: now,
         updatedAt: now,
       };
@@ -79,7 +79,7 @@ export class EmployeeService {
       return {
         id: docRef.id,
         ...employeeData,
-        uniqueId,
+        employeeId,
         createdAt: now.toDate().toISOString(),
         updatedAt: now.toDate().toISOString(),
       };

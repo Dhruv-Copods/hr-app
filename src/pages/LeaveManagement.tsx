@@ -195,7 +195,7 @@ export const LeaveManagement: React.FC = () => {
 
     // Check if a valid employee is selected
     const selectedEmp = getSelectedEmployee();
-    if (!selectedEmp || !dateRange.from || !dateRange.to) {
+    if (!selectedEmp || !selectedEmp.id || !dateRange.from || !dateRange.to) {
       toast.error('Please select a valid employee and date range');
       return;
     }
@@ -210,11 +210,10 @@ export const LeaveManagement: React.FC = () => {
 
       // Build leave data conditionally to avoid undefined values
       const baseLeaveData = {
-        employeeId: selectedEmployee,
+        employeeId: selectedEmp.employeeId,
         startDate: format(dateRange.from, 'yyyy-MM-dd'),
         endDate: format(dateRange.to, 'yyyy-MM-dd'),
         days: daySelections,
-        approved: false, // HR will approve later
       };
 
       // Only include reason if it has a value
@@ -256,14 +255,17 @@ export const LeaveManagement: React.FC = () => {
 
   // Handle employee selection from suggestions
   const handleEmployeeSelect = (employee: Employee) => {
-    setSelectedEmployee(employee.id!);
+    if (!employee.id) {
+      toast.error('Selected employee does not have a valid ID');
+      return;
+    }
+
+    setSelectedEmployee(employee.id);
     setSearchQuery(employee.name);
     setIsSearchOpen(false);
     setSelectedIndex(-1);
-    // Fetch existing leave records for this employee
-    if (employee.id) {
-      fetchExistingLeaveRecords(employee.id);
-    }
+    // Fetch existing leave records for this employee using employeeId
+    fetchExistingLeaveRecords(employee.employeeId);
   };
 
   // Handle keyboard navigation

@@ -85,6 +85,11 @@ export class LeaveService {
 
   static async createLeaveRecord(leaveData: CreateLeaveRecordData): Promise<LeaveRecord> {
     try {
+      // Validate that employeeId is provided and not empty
+      if (!leaveData.employeeId || leaveData.employeeId.trim() === '') {
+        throw new Error('Employee ID is required to create a leave record');
+      }
+
       const now = Timestamp.now();
 
       // Filter out undefined values to prevent Firebase errors
@@ -94,7 +99,6 @@ export class LeaveService {
 
       const docData = {
         ...cleanData,
-        approved: leaveData.approved ?? false,
         createdAt: now,
         updatedAt: now,
       };
@@ -104,7 +108,6 @@ export class LeaveService {
       return {
         id: docRef.id,
         ...cleanData,
-        approved: leaveData.approved ?? false,
         createdAt: now.toDate().toISOString(),
         updatedAt: now.toDate().toISOString(),
       } as LeaveRecord;
@@ -116,6 +119,11 @@ export class LeaveService {
 
   static async updateLeaveRecord(id: string, leaveData: UpdateLeaveRecordData): Promise<LeaveRecord> {
     try {
+      // Validate that we're not trying to update employeeId to an invalid value
+      if (leaveData.employeeId !== undefined && (!leaveData.employeeId || leaveData.employeeId.trim() === '')) {
+        throw new Error('Employee ID cannot be empty when updating a leave record');
+      }
+
       const docRef = doc(this.getCollection(), id);
       const now = Timestamp.now();
 
