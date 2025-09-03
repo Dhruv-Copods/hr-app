@@ -610,8 +610,13 @@ export const Settings: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium text-gray-900">{holiday.name}</span>
                                       <Badge
-                                        variant={holiday.type === 'government' ? 'destructive' : 'secondary'}
-                                        className="text-xs"
+                                        variant="outline"
+                                        className={cn(
+                                          "text-xs border-0",
+                                          holiday.type === 'government'
+                                            ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                            : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                                        )}
                                       >
                                         {holiday.type === 'government' ? 'Government' : 'Optional'}
                                       </Badge>

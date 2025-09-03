@@ -119,7 +119,8 @@ export const LeaveManagement: React.FC = () => {
 
     const current = new Date(dateRange.from);
     while (current <= dateRange.to) {
-      if (isDateDisabled(current)) {
+      // Skip government holidays when checking for conflicts
+      if (!isGovernmentHoliday(current) && isDateDisabled(current)) {
         return true;
       }
       current.setDate(current.getDate() + 1);
