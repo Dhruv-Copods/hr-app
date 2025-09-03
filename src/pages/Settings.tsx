@@ -473,7 +473,6 @@ export const Settings: React.FC = () => {
                           />
                         </PopoverContent>
                       </Popover>
-                      <p className="text-xs text-gray-500 mt-1">Dates with existing holidays are disabled</p>
                     </div>
 
                     <div className="space-y-2 flex items-end">
