@@ -224,7 +224,7 @@ export const LeaveManagement: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-hidden">
         {/* Left Column - Create Leave Record and Summary */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 overflow-auto">
           {/* Leave Form */}
           <Card className="h-fit">
             <CardHeader>

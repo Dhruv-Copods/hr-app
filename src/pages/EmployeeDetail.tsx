@@ -510,7 +510,7 @@ export const EmployeeDetail: React.FC = () => {
               <div className="flex-1 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Start Date</Label>
+                    <Label className="mb-2">Start Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -539,7 +539,7 @@ export const EmployeeDetail: React.FC = () => {
                     </Popover>
                   </div>
                   <div>
-                    <Label>End Date</Label>
+                    <Label className="mb-2">End Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -570,7 +570,7 @@ export const EmployeeDetail: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="reason">Reason</Label>
+                  <Label htmlFor="reason" className="mb-2">Reason</Label>
                   <Textarea
                     id="reason"
                     value={editFormData.reason}
@@ -619,6 +619,7 @@ export const EmployeeDetail: React.FC = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="ml-auto"
                                 onClick={() => {
                                   const newDays = { ...editFormData.days };
                                   delete newDays[date];
