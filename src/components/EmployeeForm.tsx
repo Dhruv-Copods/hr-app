@@ -33,7 +33,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { EmployeeService } from '@/lib/employeeService';
-import { type Employee, type CreateEmployeeData, DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
+import { type Employee, type CreateEmployeeData, DEPARTMENTS, DEPARTMENT_DESIGNATIONS } from '@/lib/types';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -64,6 +64,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const isEditing = !!employee;
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
 
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
@@ -93,6 +94,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         officialEmail: employee.officialEmail,
         personalEmail: employee.personalEmail,
       });
+      setSelectedDepartment(employee.department);
     } else if (!employee && open) {
       form.reset({
         name: '',
@@ -105,8 +107,24 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         officialEmail: '',
         personalEmail: '',
       });
+      setSelectedDepartment('');
     }
   }, [employee, open, form]);
+
+  // Watch for department changes to reset designation
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'department') {
+        const newDepartment = value.department;
+        setSelectedDepartment(newDepartment || '');
+        // Reset designation when department changes
+        if (newDepartment !== selectedDepartment) {
+          form.setValue('designation', '');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, selectedDepartment]);
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
@@ -128,21 +146,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
   };
 
-  const fillWithSampleData = () => {
-    const sampleData = {
-      name: 'John Doe',
-      department: 'Engineering',
-      designation: 'Software Engineer',
-      dateOfJoining: '2024-01-15',
-      dateOfBirth: '1990-05-20',
-      currentAddress: '123 Main Street, New York, NY 10001',
-      permanentAddress: '456 Oak Avenue, Springfield, IL 62701',
-      officialEmail: 'john.doe@company.com',
-      personalEmail: 'john.doe@gmail.com',
-    };
-
-    form.reset(sampleData);
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -243,14 +246,14 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Designation</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDepartment}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select designation" />
+                              <SelectValue placeholder={selectedDepartment ? "Select designation" : "Select department first"} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {DESIGNATIONS.map((desig) => (
+                            {selectedDepartment && DEPARTMENT_DESIGNATIONS[selectedDepartment as keyof typeof DEPARTMENT_DESIGNATIONS]?.map((desig) => (
                               <SelectItem key={desig} value={desig}>
                                 {desig}
                               </SelectItem>
@@ -390,10 +393,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </Form>
         </div>
 
-        <DialogFooter className="flex justify-between flex-shrink-0 border-t pt-6">
-          <Button type="button" variant="secondary" onClick={fillWithSampleData}>
-            Fill with Sample Data
-          </Button>
+        <DialogFooter className="flex justify-end flex-shrink-0 border-t pt-6">
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

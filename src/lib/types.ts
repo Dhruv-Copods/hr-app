@@ -19,39 +19,37 @@ export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {}
 
 export const DEPARTMENTS = [
   'Engineering',
-  'Human Resources',
-  'Finance',
-  'Marketing',
+  'Design',
   'Sales',
-  'Operations',
-  'Customer Support',
-  'Legal',
-  'Administration'
+  'Marketing'
 ] as const;
 
 export const DESIGNATIONS = [
-  'Software Engineer',
-  'Senior Software Engineer',
-  'Team Lead',
-  'Engineering Manager',
-  'Director of Engineering',
-  'HR Manager',
-  'HR Specialist',
-  'Financial Analyst',
-  'Accountant',
-  'Marketing Manager',
-  'Marketing Specialist',
-  'Sales Representative',
-  'Sales Manager',
-  'Operations Manager',
-  'Customer Support Specialist',
-  'Legal Counsel',
-  'Office Manager',
-  'Executive Assistant'
+  // Engineering
+  'Web Developer',
+  'Mobile Developer',
+  // Design
+  'Graphic Designer',
+  'UX Designer',
+  'Visual Designer',
+  'Product Designer',
+  // Sales
+  'Business Development Representative',
+  // Marketing
+  'Marketing Strategist',
+  'Digital Marketing Executive'
 ] as const;
 
 export type Department = typeof DEPARTMENTS[number];
 export type Designation = typeof DESIGNATIONS[number];
+
+// Department to designations mapping
+export const DEPARTMENT_DESIGNATIONS = {
+  Engineering: ['Web Developer', 'Mobile Developer'],
+  Design: ['Graphic Designer', 'UX Designer', 'Visual Designer', 'Product Designer'],
+  Sales: ['Business Development Representative'],
+  Marketing: ['Marketing Strategist', 'Digital Marketing Executive']
+} as const;
 
 // Leave Management Types
 export type LeaveDayType = 'leave' | 'wfh' | 'present';

@@ -11,6 +11,7 @@ import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import { SettingsService } from '@/lib/settingsService';
 import type { Employee, LeaveRecord, CompanySettings, LeaveDayType } from '@/lib/types';
+import { DEPARTMENTS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -189,8 +190,8 @@ export const Attendance: React.FC = () => {
   // Calculate attendance data for filtered employees
   const attendanceData = filteredEmployees.map(calculateEmployeeAttendanceData);
 
-  // Get unique departments and designations for filters
-  const departments = Array.from(new Set(employees.map(emp => emp.department))).sort();
+  // Get departments and designations for filters
+  const departments = DEPARTMENTS;
   const designations = Array.from(new Set(employees.map(emp => emp.designation))).sort();
 
   // Generate years for dropdown (current year ± 5 years)
