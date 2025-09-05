@@ -10,8 +10,8 @@ import { CalendarDays, Clock, Filter, Calendar, BarChart3 } from 'lucide-react';
 import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import { SettingsService } from '@/lib/settingsService';
-import type { Employee, LeaveRecord, CompanySettings, LeaveDayType } from '@/lib/types';
-import { DEPARTMENTS } from '@/lib/types';
+import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Designation } from '@/lib/types';
+import { DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -192,7 +192,7 @@ export const Attendance: React.FC = () => {
 
   // Get departments and designations for filters
   const departments = DEPARTMENTS;
-  const designations = Array.from(new Set(employees.map(emp => emp.designation))).sort();
+  const designations = [...DESIGNATIONS].sort();
 
   // Generate years for dropdown (current year ± 5 years)
   const currentYear = new Date().getFullYear();
@@ -324,7 +324,7 @@ export const Attendance: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Designations</SelectItem>
-                    {designations.map(designation => (
+                    {designations.map((designation: Designation) => (
                       <SelectItem key={designation} value={designation}>{designation}</SelectItem>
                     ))}
                   </SelectContent>
