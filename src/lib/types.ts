@@ -14,14 +14,15 @@ export interface Employee {
   updatedAt?: string;
 }
 
-export interface CreateEmployeeData extends Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'employeeId'> {}
-export interface UpdateEmployeeData extends Partial<CreateEmployeeData> {}
+export type CreateEmployeeData = Omit<Employee, 'id' | 'createdAt' | 'updatedAt' | 'employeeId'>;
+export type UpdateEmployeeData = Partial<CreateEmployeeData>;
 
 export const DEPARTMENTS = [
   'Engineering',
   'Design',
   'Sales',
-  'Marketing'
+  'Marketing',
+  'Human Resources'
 ] as const;
 
 export const DESIGNATIONS = [
@@ -37,7 +38,9 @@ export const DESIGNATIONS = [
   'Business Development Representative',
   // Marketing
   'Marketing Strategist',
-  'Digital Marketing Executive'
+  'Digital Marketing Executive',
+  // Human Resources
+  'HR Manager'
 ] as const;
 
 export type Department = typeof DEPARTMENTS[number];
@@ -48,7 +51,8 @@ export const DEPARTMENT_DESIGNATIONS = {
   Engineering: ['Web Developer', 'Mobile Developer'],
   Design: ['Graphic Designer', 'UX Designer', 'Visual Designer', 'Product Designer'],
   Sales: ['Business Development Representative'],
-  Marketing: ['Marketing Strategist', 'Digital Marketing Executive']
+  Marketing: ['Marketing Strategist', 'Digital Marketing Executive'],
+  'Human Resources': ['HR Manager']
 } as const;
 
 // Leave Management Types
@@ -70,9 +74,9 @@ export interface LeaveRecord {
   updatedAt?: string;
 }
 
-export interface CreateLeaveRecordData extends Omit<LeaveRecord, 'id' | 'createdAt' | 'updatedAt' | 'approved' | 'approvedBy' | 'approvedAt'> {}
+export type CreateLeaveRecordData = Omit<LeaveRecord, 'id' | 'createdAt' | 'updatedAt' | 'approved' | 'approvedBy' | 'approvedAt'>;
 
-export interface UpdateLeaveRecordData extends Partial<Omit<LeaveRecord, 'id' | 'createdAt'>> {}
+export type UpdateLeaveRecordData = Partial<Omit<LeaveRecord, 'id' | 'createdAt'>>;
 
 // Holiday Types
 export type HolidayType = 'government' | 'optional';
@@ -85,7 +89,7 @@ export interface Holiday {
   description?: string;
 }
 
-export interface CreateHolidayData extends Omit<Holiday, 'id'> {}
+export type CreateHolidayData = Omit<Holiday, 'id'>;
 
 // Settings Types
 export interface CompanySettings {

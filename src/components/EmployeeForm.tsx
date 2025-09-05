@@ -303,6 +303,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                                 date > new Date() || date < new Date("1900-01-01")
                               }
                               initialFocus
+                              captionLayout="dropdown"
+                              fromYear={1950}
+                              toYear={new Date().getFullYear()}
                             />
                           </PopoverContent>
                         </Popover>
@@ -346,6 +349,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                                 date > new Date() || date < new Date("1900-01-01")
                               }
                               initialFocus
+                              captionLayout="dropdown"
+                              fromYear={1950}
+                              toYear={new Date().getFullYear()}
                             />
                           </PopoverContent>
                         </Popover>
