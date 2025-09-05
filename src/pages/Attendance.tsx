@@ -211,7 +211,7 @@ export const Attendance: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="space-y-6 flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0">
         <div>
@@ -224,7 +224,7 @@ export const Attendance: React.FC = () => {
       <div className="flex-shrink-0">
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+            <div className="flex flex-col lg:flex-row lg:flex-wrap gap-4 items-start lg:items-center">
               {/* View Mode Toggle */}
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-medium">View:</Label>
@@ -342,8 +342,8 @@ export const Attendance: React.FC = () => {
       </div>
 
       {/* Employee Table */}
-      <div className="flex-1">
-        <Card>
+      <div className="flex-1 overflow-hidden">
+        <Card className='shadow-none overflow-hidden h-full'>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Employee Attendance
@@ -365,7 +365,7 @@ export const Attendance: React.FC = () => {
               }
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="w-full overflow-hidden">
             {attendanceData.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p>No employees match the current filters</p>
