@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EmployeeProvider } from '@/hooks/EmployeeProvider';
+import { LeaveProvider } from '@/hooks/LeaveProvider';
 import { SettingsProvider } from '@/hooks/SettingsProvider';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Layout } from '@/components/Layout';
@@ -18,8 +19,9 @@ function App() {
   return (
     <AuthProvider>
       <EmployeeProvider>
-        <SettingsProvider>
-          <Router>
+        <LeaveProvider>
+          <SettingsProvider>
+            <Router>
         <Routes>
           {/* Public route - redirects to dashboard if already authenticated */}
           <Route
@@ -132,6 +134,7 @@ function App() {
           </Router>
           <Toaster />
         </SettingsProvider>
+        </LeaveProvider>
       </EmployeeProvider>
     </AuthProvider>
   );

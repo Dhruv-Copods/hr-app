@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -12,10 +12,9 @@ import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { getLeaveRecordsByEmployee, createLeaveRecord } from '@/lib/leaveService';
-import { getSettings } from '@/lib/settingsService';
 import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord, Holiday } from '@/lib/types';
 import { useEmployee } from '@/hooks/EmployeeContext';
+import { useLeave } from '@/hooks/LeaveContext';
 
 interface DateRange {
   from: Date | undefined;
@@ -28,13 +27,18 @@ interface DaySelection {
 
 export const LeaveManagement: React.FC = () => {
   const { employees } = useEmployee();
+  const {
+    holidays,
+    createLeaveRecord,
+    fetchLeaveRecordsByEmployee
+  } = useLeave();
+
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [daySelections, setDaySelections] = useState<DaySelection>({});
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [existingLeaveRecords, setExistingLeaveRecords] = useState<LeaveRecord[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   // Search functionality states
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,24 +46,9 @@ export const LeaveManagement: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchHolidays();
-  }, []);
-
-  const fetchHolidays = async () => {
-    try {
-      const settings = await getSettings();
-      if (settings) {
-        setHolidays(settings.holidays);
-      }
-    } catch (error) {
-      console.error('Error fetching holidays:', error);
-    }
-  };
-
   const fetchExistingLeaveRecords = async (employeeId: string) => {
     try {
-      const records = await getLeaveRecordsByEmployee(employeeId);
+      const records = await fetchLeaveRecordsByEmployee(employeeId);
       setExistingLeaveRecords(records);
     } catch (error) {
       console.error('Error fetching existing leave records:', error);
@@ -221,7 +210,10 @@ export const LeaveManagement: React.FC = () => {
       setIsSearchOpen(false);
       setSelectedIndex(-1);
 
-      toast.success('Leave record created successfully!');
+      // Refresh existing leave records for the employee
+      if (selectedEmp.employeeId) {
+        await fetchExistingLeaveRecords(selectedEmp.employeeId);
+      }
     } catch (error) {
       console.error('Error creating leave record:', error);
       toast.error('Failed to create leave record. Please try again.');
