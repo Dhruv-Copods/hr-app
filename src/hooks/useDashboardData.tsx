@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAllEmployees } from '@/lib/employeeService';
-import { getAllLeaveRecords } from '@/lib/leaveService';
-import { getSettings } from '@/lib/settingsService';
-import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Holiday } from '@/lib/types';
+import { useLeave } from '@/hooks/LeaveContext';
+import { useSettings } from '@/hooks/SettingsContext';
+import type { Employee, LeaveRecord, LeaveDayType, Holiday } from '@/lib/types';
 
 interface TodayLeaveData {
   employee: Employee;
@@ -23,37 +23,38 @@ interface DashboardData {
 
 export const useDashboardData = (): DashboardData => {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
-  const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  // Use data from providers
+  const { leaveRecords, loading: leaveLoading, error: leaveError } = useLeave();
+  const { settings, loading: settingsLoading } = useSettings();
+
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [employeesData, leaveData, settingsData] = await Promise.all([
-        getAllEmployees(),
-        getAllLeaveRecords(),
-        getSettings()
-      ]);
-
+      const employeesData = await getAllEmployees();
       setEmployees(employeesData);
-      setLeaveRecords(leaveData);
-      setSettings(settingsData);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch dashboard data';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employee data';
       setError(errorMessage);
-      console.error('Error fetching dashboard data:', err);
+      console.error('Error fetching employee data:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  // Combined loading state from all sources
+  const isLoading = loading || leaveLoading || settingsLoading;
+
+  // Combined error state
+  const combinedError = error || leaveError;
 
   // Calculate today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
@@ -100,7 +101,7 @@ export const useDashboardData = (): DashboardData => {
     upcomingHolidays,
     totalEmployees: employees.length,
     departmentStats,
-    loading,
-    error,
+    loading: isLoading,
+    error: combinedError,
   };
 };

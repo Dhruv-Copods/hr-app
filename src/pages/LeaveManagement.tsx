@@ -12,7 +12,8 @@ import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord, Holiday } from '@/lib/types';
+import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord } from '@/lib/types';
+import { isHoliday, isOptionalHoliday, isDateDisabled } from '@/lib/helpers';
 import { useEmployee } from '@/hooks/EmployeeContext';
 import { useLeave } from '@/hooks/LeaveContext';
 
@@ -55,41 +56,6 @@ export const LeaveManagement: React.FC = () => {
     }
   };
 
-  const isHoliday = (date: Date): Holiday | null => {
-    const dateKey = format(date, 'yyyy-MM-dd');
-    return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'holiday') || null;
-  };
-
-  const isOptionalHoliday = (date: Date): Holiday | null => {
-    const dateKey = format(date, 'yyyy-MM-dd');
-    return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'optional') || null;
-  };
-
-  const isDateDisabled = (date: Date): boolean => {
-    const dateKey = format(date, 'yyyy-MM-dd');
-
-    // Check if this date falls within any existing leave record
-    for (const record of existingLeaveRecords) {
-      const recordStart = new Date(record.startDate);
-      const recordEnd = new Date(record.endDate);
-
-      // If date is within the record's date range
-      if (date >= recordStart && date <= recordEnd) {
-        // Check if this specific date has leave or wfh
-        const dayType = record.days[dateKey];
-        if (dayType === 'leave' || dayType === 'wfh') {
-          return true;
-        }
-      }
-    }
-
-    // Check if it's a holiday (these should be disabled)
-    if (isHoliday(date)) {
-      return true;
-    }
-
-    return false;
-  };
 
   const hasConflictingDates = (): boolean => {
     if (!dateRange.from || !dateRange.to) return false;
@@ -97,7 +63,7 @@ export const LeaveManagement: React.FC = () => {
     const current = new Date(dateRange.from);
     while (current <= dateRange.to) {
       // Skip holidays when checking for conflicts
-      if (!isHoliday(current) && isDateDisabled(current)) {
+      if (!isHoliday(current, holidays) && isDateDisabled(current, existingLeaveRecords, holidays)) {
         return true;
       }
       current.setDate(current.getDate() + 1);
@@ -134,9 +100,9 @@ export const LeaveManagement: React.FC = () => {
 
   const getDayTypeBadge = (type: LeaveDayType, date: Date) => {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
-    const isDisabled = isDateDisabled(date);
-    const holiday = isHoliday(date);
-    const optionalHoliday = isOptionalHoliday(date);
+    const isDisabled = isDateDisabled(date, existingLeaveRecords, holidays);
+    const holiday = isHoliday(date, holidays);
+    const optionalHoliday = isOptionalHoliday(date, holidays);
 
     if (isDisabled && !holiday) {
       return <Badge className="bg-red-100 text-red-800 border-red-200">Already Booked</Badge>;
@@ -222,16 +188,12 @@ export const LeaveManagement: React.FC = () => {
     }
   };
 
-
-
   // Filter employees based on search query
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     employee.officialEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     employee.department?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-
 
   // Handle employee selection from suggestions
   const handleEmployeeSelect = (employee: Employee) => {
@@ -440,9 +402,9 @@ export const LeaveManagement: React.FC = () => {
                         selected={dateRange}
                         onSelect={handleDateSelect}
                         numberOfMonths={2}
-                        disabled={isDateDisabled}
+                        disabled={(date) => isDateDisabled(date, existingLeaveRecords, holidays)}
                         modifiers={{
-                          optionalHoliday: (date) => isOptionalHoliday(date) !== null,
+                          optionalHoliday: (date) => isOptionalHoliday(date, holidays) !== null,
                         }}
                         modifiersClassNames={{
                           optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold hover:bg-yellow-200",
@@ -520,7 +482,7 @@ export const LeaveManagement: React.FC = () => {
                           let holidayCount = 0;
                           const current = new Date(dateRange.from!);
                           while (current <= dateRange.to!) {
-                            if (isHoliday(current)) {
+                            if (isHoliday(current, holidays)) {
                               holidayCount++;
                             }
                             current.setDate(current.getDate() + 1);
@@ -558,7 +520,7 @@ export const LeaveManagement: React.FC = () => {
                           let workingDays = 0;
                           const current = new Date(dateRange.from!);
                           while (current <= dateRange.to!) {
-                            if (current.getDay() !== 0 && current.getDay() !== 6 && !isHoliday(current)) {
+                            if (current.getDay() !== 0 && current.getDay() !== 6 && !isHoliday(current, holidays)) {
                               workingDays++;
                             }
                             current.setDate(current.getDate() + 1);
@@ -575,7 +537,7 @@ export const LeaveManagement: React.FC = () => {
                       <p className="text-lg font-semibold text-red-800 mt-1">
                         {Object.entries(daySelections).filter(([dateKey, type]) => {
                           const date = new Date(dateKey);
-                          return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date);
+                          return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
                         }).length}
                       </p>
                       <p className="text-xs text-red-600">working days</p>
@@ -587,7 +549,7 @@ export const LeaveManagement: React.FC = () => {
                       <p className="text-lg font-semibold text-blue-800 mt-1">
                         {Object.entries(daySelections).filter(([dateKey, type]) => {
                           const date = new Date(dateKey);
-                          return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date);
+                          return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
                         }).length}
                       </p>
                       <p className="text-xs text-blue-600">working days</p>
@@ -627,7 +589,7 @@ export const LeaveManagement: React.FC = () => {
                     const dayType = daySelections[dateKey] || 'leave';
                     const currentDate = new Date(current); // Create a copy of the current date
                     const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6; // 0 = Sunday, 6 = Saturday
-                    const isDisabled = isDateDisabled(currentDate);
+                    const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
 
                     days.push(
                       <div key={dateKey} className={`flex items-center justify-between p-3 border rounded-lg ${
@@ -635,15 +597,15 @@ export const LeaveManagement: React.FC = () => {
                       } ${
                         isDisabled ? 'bg-red-50 border-red-200' : ''
                       } ${
-                        isHoliday(currentDate) ? 'bg-red-50 border-red-200' : ''
+                        isHoliday(currentDate, holidays) ? 'bg-red-50 border-red-200' : ''
                       } ${
-                        isOptionalHoliday(currentDate) ? 'bg-yellow-50 border-yellow-200' : ''
+                        isOptionalHoliday(currentDate, holidays) ? 'bg-yellow-50 border-yellow-200' : ''
                       }`}>
                         <div className="flex items-center gap-3">
                           <span className={`font-medium ${
                             isWeekend ? 'text-orange-800' :
-                            isHoliday(currentDate) ? 'text-red-800' :
-                            isOptionalHoliday(currentDate) ? 'text-yellow-800' : ''
+                            isHoliday(currentDate, holidays) ? 'text-red-800' :
+                            isOptionalHoliday(currentDate, holidays) ? 'text-yellow-800' : ''
                           }`}>
                             {format(current, 'EEE, MMM dd')}
                           </span>

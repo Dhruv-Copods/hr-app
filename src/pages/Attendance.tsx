@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -7,14 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, Filter, Calendar, BarChart3 } from 'lucide-react';
-import { getAllLeaveRecords } from '@/lib/leaveService';
-import { initializeSettings } from '@/lib/settingsService';
-import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Designation } from '@/lib/types';
+import type { Employee, LeaveDayType, Designation } from '@/lib/types';
 import { DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { useEmployee } from '@/hooks/EmployeeContext';
+import { useLeave } from '@/hooks/LeaveContext';
+import { useSettings } from '@/hooks/SettingsContext';
 
 interface EmployeeAttendanceData {
   employee: Employee;
@@ -34,9 +33,8 @@ interface EmployeeAttendanceData {
 
 export const Attendance: React.FC = () => {
   const { employees } = useEmployee();
-  const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
-  const [settings, setSettings] = useState<CompanySettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { leaveRecords, loading: leaveLoading } = useLeave();
+  const { settings, loading: settingsLoading } = useSettings();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
@@ -46,28 +44,8 @@ export const Attendance: React.FC = () => {
     search: '',
   });
 
-  // Load data on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [leaveRecordsData, settingsData] = await Promise.all([
-          getAllLeaveRecords(),
-          initializeSettings(),
-        ]);
-
-        setLeaveRecords(leaveRecordsData);
-        setSettings(settingsData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Failed to load attendance data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  // Combined loading state from both providers
+  const isLoading = leaveLoading || settingsLoading;
 
   // Calculate attendance data for each employee
   const calculateEmployeeAttendanceData = (employee: Employee): EmployeeAttendanceData => {

@@ -25,19 +25,19 @@ import {
   Trash2,
   FileText
 } from 'lucide-react';
-import { getLeaveRecordsByEmployee, updateLeaveRecord, deleteLeaveRecord } from '@/lib/leaveService';
 import { getEmployeeById } from '@/lib/employeeService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatDateLong } from '@/lib/helpers';
 import { toast } from 'sonner';
+import { useLeave } from '@/hooks/LeaveContext';
 
 export const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { updateLeaveRecord, deleteLeaveRecord, getEmployeeLeaveRecords } = useLeave();
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,11 +71,7 @@ export const EmployeeDetail: React.FC = () => {
         return;
       }
 
-      // Fetch leave records using the employee's employeeId
-      const leaveData = await getLeaveRecordsByEmployee(employeeData.employeeId);
-
       setEmployee(employeeData);
-      setLeaveRecords(leaveData);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to fetch employee data');
       navigate('/employees');
@@ -85,11 +81,16 @@ export const EmployeeDetail: React.FC = () => {
   };
 
   const calculateLeaveStats = () => {
+    if (!employee) return { totalLeaveDays: 0, totalWfhDays: 0, totalRecords: 0 };
+
     const currentYear = new Date().getFullYear();
     const uniqueLeaveDates = new Set<string>();
     const uniqueWfhDates = new Set<string>();
 
-    leaveRecords.forEach(record => {
+    // Get leave records for this employee from the provider
+    const employeeLeaveRecords = getEmployeeLeaveRecords(employee.employeeId);
+
+    employeeLeaveRecords.forEach(record => {
       Object.entries(record.days).forEach(([dateString, dayType]) => {
         const recordYear = new Date(dateString).getFullYear();
         if (recordYear === currentYear) {
@@ -97,7 +98,7 @@ export const EmployeeDetail: React.FC = () => {
           const date = new Date(dateString);
           const dayOfWeek = date.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-          
+
           // Only count non-weekend days
           if (!isWeekend) {
             if (dayType === 'leave') uniqueLeaveDates.add(dateString);
@@ -107,15 +108,15 @@ export const EmployeeDetail: React.FC = () => {
       });
     });
 
-    const currentYearRecords = leaveRecords.filter(record => {
+    const currentYearRecords = employeeLeaveRecords.filter(record => {
       const recordYear = new Date(record.startDate).getFullYear();
       return recordYear === currentYear;
     });
 
-    return { 
-      totalLeaveDays: uniqueLeaveDates.size, 
-      totalWfhDays: uniqueWfhDates.size, 
-      totalRecords: currentYearRecords.length 
+    return {
+      totalLeaveDays: uniqueLeaveDates.size,
+      totalWfhDays: uniqueWfhDates.size,
+      totalRecords: currentYearRecords.length
     };
   };
 
@@ -141,11 +142,7 @@ export const EmployeeDetail: React.FC = () => {
         days: editFormData.days
       });
 
-      // Refresh leave records
-      if (employee) {
-        const updatedRecords = await getLeaveRecordsByEmployee(employee.employeeId);
-        setLeaveRecords(updatedRecords);
-      }
+      // Provider automatically updates the state, no need to refresh manually
 
       setIsEditModalOpen(false);
       setEditingRecord(null);
@@ -167,11 +164,7 @@ export const EmployeeDetail: React.FC = () => {
     try {
       await deleteLeaveRecord(deleteRecordId);
 
-      // Refresh leave records
-      if (employee) {
-        const updatedRecords = await getLeaveRecordsByEmployee(employee.employeeId);
-        setLeaveRecords(updatedRecords);
-      }
+      // Provider automatically updates the state, no need to refresh manually
       toast.success('Leave record deleted successfully');
     } catch (error) {
       console.error('Error deleting leave record:', error);
@@ -383,7 +376,7 @@ export const EmployeeDetail: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {leaveRecords.length === 0 ? (
+              {employee && getEmployeeLeaveRecords(employee.employeeId).length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
@@ -405,7 +398,7 @@ export const EmployeeDetail: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {leaveRecords.map((record) => {
+                      {employee && getEmployeeLeaveRecords(employee.employeeId).map((record) => {
                         // Calculate leave and WFH days excluding weekends
                         const leaveDays = Object.entries(record.days)
                           .filter(([dateKey, dayType]) => {

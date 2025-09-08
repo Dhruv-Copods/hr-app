@@ -1,3 +1,6 @@
+import { format } from 'date-fns';
+import type { Holiday, LeaveRecord } from './types';
+
 /**
  * Centralized utility functions for the HR application
  * This file contains all helper functions that are not Firebase-specific
@@ -139,4 +142,59 @@ export function removeUndefinedValues<T extends Record<string, unknown>>(obj: T)
   return Object.fromEntries(
     Object.entries(obj).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
+}
+
+/**
+ * Checks if a date is a holiday
+ * @param date - The date to check
+ * @param holidays - Array of holidays to check against
+ * @returns The holiday object if found, null otherwise
+ */
+export function isHoliday(date: Date, holidays: Holiday[]): Holiday | null {
+  const dateKey = format(date, 'yyyy-MM-dd');
+  return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'holiday') || null;
+}
+
+/**
+ * Checks if a date is an optional holiday
+ * @param date - The date to check
+ * @param holidays - Array of holidays to check against
+ * @returns The holiday object if found, null otherwise
+ */
+export function isOptionalHoliday(date: Date, holidays: Holiday[]): Holiday | null {
+  const dateKey = format(date, 'yyyy-MM-dd');
+  return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'optional') || null;
+}
+
+/**
+ * Checks if a date should be disabled based on existing leave records and holidays
+ * @param date - The date to check
+ * @param existingLeaveRecords - Array of existing leave records
+ * @param holidays - Array of holidays
+ * @returns True if the date should be disabled
+ */
+export function isDateDisabled(date: Date, existingLeaveRecords: LeaveRecord[], holidays: Holiday[]): boolean {
+  const dateKey = format(date, 'yyyy-MM-dd');
+
+  // Check if this date falls within any existing leave record
+  for (const record of existingLeaveRecords) {
+    const recordStart = new Date(record.startDate);
+    const recordEnd = new Date(record.endDate);
+
+    // If date is within the record's date range
+    if (date >= recordStart && date <= recordEnd) {
+      // Check if this specific date has leave or wfh
+      const dayType = record.days[dateKey];
+      if (dayType === 'leave' || dayType === 'wfh') {
+        return true;
+      }
+    }
+  }
+
+  // Check if it's a holiday (these should be disabled)
+  if (isHoliday(date, holidays)) {
+    return true;
+  }
+
+  return false;
 }
