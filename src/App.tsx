@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/hooks/useAuth';
+import { AuthProvider } from '@/hooks/AuthProvider';
 import { EmployeeProvider } from '@/hooks/EmployeeProvider';
 import { LeaveProvider } from '@/hooks/LeaveProvider';
 import { SettingsProvider } from '@/hooks/SettingsProvider';

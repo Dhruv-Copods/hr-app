@@ -11,15 +11,10 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { generateEmployeeId } from './helpers';
 import type { Employee, CreateEmployeeData, UpdateEmployeeData } from './types';
 
 const COLLECTION_NAME = 'employees';
-
-function generateEmployeeId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomString = Math.random().toString(36).substr(2, 5);
-  return `EMP-${timestamp}-${randomString}`.toUpperCase();
-}
 
 function getCollection() {
   return collection(db, COLLECTION_NAME);

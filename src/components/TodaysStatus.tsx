@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Home } from 'lucide-react';
+import { formatEmployeeName } from '@/lib/helpers';
 import type { LeaveDayType, Employee, LeaveRecord } from '@/lib/types';
 
 interface TodaysStatusProps {
@@ -17,9 +18,6 @@ interface TodaysStatusProps {
 }
 
 export const TodaysStatus: React.FC<TodaysStatusProps> = ({ todayLeave, todayWFH }) => {
-  const formatEmployeeName = (name: string) => {
-    return name.length > 25 ? `${name.substring(0, 22)}...` : name;
-  };
 
   const EmployeeListItem = ({ employee, leaveType }: { employee: Employee; leaveType: 'leave' | 'wfh' }) => (
     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">

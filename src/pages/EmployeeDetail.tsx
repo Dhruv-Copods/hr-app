@@ -30,6 +30,7 @@ import { getEmployeeById } from '@/lib/employeeService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatDateLong } from '@/lib/helpers';
 import { toast } from 'sonner';
 
 export const EmployeeDetail: React.FC = () => {
@@ -81,20 +82,6 @@ export const EmployeeDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-
-
-
-
-
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
   };
 
   const calculateLeaveStats = () => {
@@ -323,7 +310,7 @@ export const EmployeeDetail: React.FC = () => {
                   <Label className="text-sm font-medium text-gray-500">Date of Joining</Label>
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-gray-400" />
-                    <p>{formatDate(employee.dateOfJoining)}</p>
+                    <p>{formatDateLong(employee.dateOfJoining)}</p>
                   </div>
                 </div>
 
@@ -331,7 +318,7 @@ export const EmployeeDetail: React.FC = () => {
                   <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-gray-400" />
-                    <p>{formatDate(employee.dateOfBirth)}</p>
+                    <p>{formatDateLong(employee.dateOfBirth)}</p>
                   </div>
                 </div>
               </CardContent>

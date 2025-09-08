@@ -12,6 +12,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { filterRecordsByDateRange, removeUndefinedValues } from './helpers';
 import type { LeaveRecord, CreateLeaveRecordData, UpdateLeaveRecordData } from './types';
 
 const COLLECTION_NAME = 'leaveRecords';
@@ -92,9 +93,7 @@ export async function createLeaveRecord(leaveData: CreateLeaveRecordData): Promi
     const now = Timestamp.now();
 
     // Filter out undefined values to prevent Firebase errors
-    const cleanData = Object.fromEntries(
-      Object.entries(leaveData).filter(([, value]) => value !== undefined)
-    );
+    const cleanData = removeUndefinedValues(leaveData);
 
     const docData = {
       ...cleanData,
@@ -127,9 +126,7 @@ export async function updateLeaveRecord(id: string, leaveData: UpdateLeaveRecord
     const now = Timestamp.now();
 
     // Filter out undefined values to prevent Firebase errors
-    const cleanData = Object.fromEntries(
-      Object.entries(leaveData).filter(([, value]) => value !== undefined)
-    );
+    const cleanData = removeUndefinedValues(leaveData);
 
     const updateData = {
       ...cleanData,
@@ -183,15 +180,7 @@ export async function getLeaveRecordsByDateRange(startDate: string, endDate: str
     // we'll fetch all records and filter client-side for now
     const allRecords = await getAllLeaveRecords();
 
-    return allRecords.filter(record => {
-      const recordStart = new Date(record.startDate);
-      const recordEnd = new Date(record.endDate);
-      const filterStart = new Date(startDate);
-      const filterEnd = new Date(endDate);
-
-      // Check if the leave period overlaps with the filter period
-      return recordStart <= filterEnd && recordEnd >= filterStart;
-    });
+    return filterRecordsByDateRange(allRecords, startDate, endDate);
   } catch (error) {
     console.error('Error fetching leave records by date range:', error);
     throw new Error('Failed to fetch leave records by date range');

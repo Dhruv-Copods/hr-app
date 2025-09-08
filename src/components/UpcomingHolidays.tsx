@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
+import { formatDateShort, getDaysUntil, getHolidayTypeColor, capitalizeFirstLetter } from '@/lib/helpers';
 import type { Holiday } from '@/lib/types';
 
 interface UpcomingHolidaysProps {
@@ -9,30 +10,6 @@ interface UpcomingHolidaysProps {
 }
 
 export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const getDaysUntil = (dateString: string) => {
-    const today = new Date();
-    const holidayDate = new Date(dateString);
-    const diffTime = holidayDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const getHolidayTypeColor = (type: string) => {
-    return type === 'holiday' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-  };
-
-  const capitalizeFirstLetter = (str: string) => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
 
   return (
     <Card>
@@ -55,7 +32,7 @@ export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) 
                   <div>
                     <p className="text-sm font-medium">{holiday.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(holiday.date)} • {getDaysUntil(holiday.date)} days away
+                      {formatDateShort(holiday.date)} • {getDaysUntil(holiday.date)} days away
                     </p>
                   </div>
                 </div>
