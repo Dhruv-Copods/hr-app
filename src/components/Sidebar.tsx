@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   return (
     <div className={cn("flex h-full w-64 flex-col bg-white border-r border-gray-200", className)}>
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
-        <h1 className="text-xl font-semibold text-gray-900">WorkForce Pro</h1>
+        <h1 className="text-xl font-semibold text-gray-900">People Hub</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4">
