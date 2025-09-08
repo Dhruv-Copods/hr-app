@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, Filter, Calendar, BarChart3 } from 'lucide-react';
-import { LeaveService } from '@/lib/leaveService';
-import { SettingsService } from '@/lib/settingsService';
+import { getAllLeaveRecords } from '@/lib/leaveService';
+import { initializeSettings } from '@/lib/settingsService';
 import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Designation } from '@/lib/types';
 import { DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
@@ -52,8 +52,8 @@ export const Attendance: React.FC = () => {
       try {
         setIsLoading(true);
         const [leaveRecordsData, settingsData] = await Promise.all([
-          LeaveService.getAllLeaveRecords(),
-          SettingsService.initializeSettings(),
+          getAllLeaveRecords(),
+          initializeSettings(),
         ]);
 
         setLeaveRecords(leaveRecordsData);

@@ -25,7 +25,7 @@ import {
   Trash2,
   FileText
 } from 'lucide-react';
-import { LeaveService } from '@/lib/leaveService';
+import { getLeaveRecordsByEmployee, updateLeaveRecord, deleteLeaveRecord } from '@/lib/leaveService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -72,7 +72,7 @@ export const EmployeeDetail: React.FC = () => {
       }
 
       // Fetch leave records using the employee's employeeId
-      const leaveData = await LeaveService.getLeaveRecordsByEmployee(employeeData.employeeId);
+      const leaveData = await getLeaveRecordsByEmployee(employeeData.employeeId);
 
       setEmployee(employeeData);
       setLeaveRecords(leaveData);
@@ -148,7 +148,7 @@ export const EmployeeDetail: React.FC = () => {
     if (!editingRecord || !editFormData.startDate || !editFormData.endDate) return;
 
     try {
-      await LeaveService.updateLeaveRecord(editingRecord.id!, {
+      await updateLeaveRecord(editingRecord.id!, {
         startDate: format(editFormData.startDate, 'yyyy-MM-dd'),
         endDate: format(editFormData.endDate, 'yyyy-MM-dd'),
         reason: editFormData.reason,
@@ -157,7 +157,7 @@ export const EmployeeDetail: React.FC = () => {
 
       // Refresh leave records
       if (employee) {
-        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(employee.employeeId);
+        const updatedRecords = await getLeaveRecordsByEmployee(employee.employeeId);
         setLeaveRecords(updatedRecords);
       }
 
@@ -179,11 +179,11 @@ export const EmployeeDetail: React.FC = () => {
     if (!deleteRecordId) return;
 
     try {
-      await LeaveService.deleteLeaveRecord(deleteRecordId);
+      await deleteLeaveRecord(deleteRecordId);
 
       // Refresh leave records
       if (employee) {
-        const updatedRecords = await LeaveService.getLeaveRecordsByEmployee(employee.employeeId);
+        const updatedRecords = await getLeaveRecordsByEmployee(employee.employeeId);
         setLeaveRecords(updatedRecords);
       }
       toast.success('Leave record deleted successfully');

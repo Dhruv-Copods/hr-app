@@ -12,8 +12,8 @@ import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { LeaveService } from '@/lib/leaveService';
-import { SettingsService } from '@/lib/settingsService';
+import { getLeaveRecordsByEmployee, createLeaveRecord } from '@/lib/leaveService';
+import { getSettings } from '@/lib/settingsService';
 import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord, Holiday } from '@/lib/types';
 import { useEmployee } from '@/hooks/EmployeeContext';
 
@@ -48,7 +48,7 @@ export const LeaveManagement: React.FC = () => {
 
   const fetchHolidays = async () => {
     try {
-      const settings = await SettingsService.getSettings();
+      const settings = await getSettings();
       if (settings) {
         setHolidays(settings.holidays);
       }
@@ -59,7 +59,7 @@ export const LeaveManagement: React.FC = () => {
 
   const fetchExistingLeaveRecords = async (employeeId: string) => {
     try {
-      const records = await LeaveService.getLeaveRecordsByEmployee(employeeId);
+      const records = await getLeaveRecordsByEmployee(employeeId);
       setExistingLeaveRecords(records);
     } catch (error) {
       console.error('Error fetching existing leave records:', error);
@@ -210,7 +210,7 @@ export const LeaveManagement: React.FC = () => {
         ? { ...baseLeaveData, reason: trimmedReason }
         : baseLeaveData;
 
-      await LeaveService.createLeaveRecord(leaveData);
+      await createLeaveRecord(leaveData);
 
       // Reset form
       setSelectedEmployee('');

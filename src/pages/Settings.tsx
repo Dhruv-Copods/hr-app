@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Loader2, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, CalendarDays, Edit3, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CompanySettings, Holiday, HolidayType, CreateHolidayData } from '@/lib/types';
-import { SettingsService } from '@/lib/settingsService';
+import { initializeSettings, updateSettings } from '@/lib/settingsService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -53,7 +53,7 @@ export const Settings: React.FC = () => {
     const loadSettings = async () => {
       try {
         setIsLoading(true);
-        const loadedSettings = await SettingsService.initializeSettings();
+        const loadedSettings = await initializeSettings();
         setSettings(loadedSettings);
         setLeaveSettings({
           ptoYearly: loadedSettings.ptoYearly,
@@ -100,7 +100,7 @@ export const Settings: React.FC = () => {
 
     setIsLeaveSaving(true);
     try {
-      const savedSettings = await SettingsService.updateSettings({
+      const savedSettings = await updateSettings({
         ...settings,
         ...leaveSettings,
       });
@@ -147,7 +147,7 @@ export const Settings: React.FC = () => {
         ...newHoliday,
       };
 
-      const savedSettings = await SettingsService.updateSettings({
+      const savedSettings = await updateSettings({
         ...settings,
         holidays: [...settings.holidays, holiday],
       });
@@ -177,7 +177,7 @@ export const Settings: React.FC = () => {
 
     try {
       const updatedHolidays = settings.holidays.filter(h => h.id !== holidayId);
-      const savedSettings = await SettingsService.updateSettings({
+      const savedSettings = await updateSettings({
         ...settings,
         holidays: updatedHolidays,
       });
@@ -226,7 +226,7 @@ export const Settings: React.FC = () => {
           : h
       );
 
-      const savedSettings = await SettingsService.updateSettings({
+      const savedSettings = await updateSettings({
         ...settings,
         holidays: updatedHolidays,
       });

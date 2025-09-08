@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { EmployeeService } from '@/lib/employeeService';
+import { getAllEmployees, createEmployee as createEmployeeService, updateEmployee as updateEmployeeService, deleteEmployee as deleteEmployeeService } from '@/lib/employeeService';
 import { EmployeeContext } from '@/hooks/EmployeeContext';
 import type { Employee, CreateEmployeeData, UpdateEmployeeData } from '@/lib/types';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
     try {
       setLoading(true);
       setError(null);
-      const data = await EmployeeService.getAllEmployees();
+      const data = await getAllEmployees();
       setEmployees(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch employees';
@@ -31,7 +31,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
 
   const createEmployee = useCallback(async (data: CreateEmployeeData): Promise<Employee> => {
     try {
-      const newEmployee = await EmployeeService.createEmployee(data);
+      const newEmployee = await createEmployeeService(data);
       setEmployees(prev => [newEmployee, ...prev]);
       toast.success('Employee created successfully');
       return newEmployee;
@@ -45,7 +45,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
 
   const updateEmployee = useCallback(async (id: string, data: UpdateEmployeeData): Promise<Employee> => {
     try {
-      const updatedEmployee = await EmployeeService.updateEmployee(id, data);
+      const updatedEmployee = await updateEmployeeService(id, data);
       setEmployees(prev => prev.map(emp => emp.id === id ? updatedEmployee : emp));
       toast.success('Employee updated successfully');
       return updatedEmployee;
@@ -59,7 +59,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
 
   const deleteEmployee = useCallback(async (id: string): Promise<void> => {
     try {
-      await EmployeeService.deleteEmployee(id);
+      await deleteEmployeeService(id);
       setEmployees(prev => prev.filter(emp => emp.id !== id));
       toast.success('Employee deleted successfully');
     } catch (err) {
