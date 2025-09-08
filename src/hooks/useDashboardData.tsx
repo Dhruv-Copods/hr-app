@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAllEmployees } from '@/lib/employeeService';
 import { getAllLeaveRecords } from '@/lib/leaveService';
 import { getSettings } from '@/lib/settingsService';
-import type { Employee, LeaveRecord, CompanySettings, LeaveDayType } from '@/lib/types';
+import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Holiday } from '@/lib/types';
 
 interface TodayLeaveData {
   employee: Employee;
@@ -14,7 +14,7 @@ interface DashboardData {
   employees: Employee[];
   todayLeave: TodayLeaveData[];
   todayWFH: TodayLeaveData[];
-  upcomingHolidays: any[];
+  upcomingHolidays: Holiday[];
   totalEmployees: number;
   departmentStats: Record<string, number>;
   loading: boolean;
