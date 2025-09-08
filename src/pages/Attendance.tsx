@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarDays, Clock, Filter, Calendar, BarChart3 } from 'lucide-react';
-import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import { SettingsService } from '@/lib/settingsService';
 import type { Employee, LeaveRecord, CompanySettings, LeaveDayType, Designation } from '@/lib/types';
@@ -15,6 +14,7 @@ import { DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useEmployee } from '@/hooks/EmployeeContext';
 
 interface EmployeeAttendanceData {
   employee: Employee;
@@ -33,7 +33,7 @@ interface EmployeeAttendanceData {
 }
 
 export const Attendance: React.FC = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { employees } = useEmployee();
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,13 +51,11 @@ export const Attendance: React.FC = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [employeesData, leaveRecordsData, settingsData] = await Promise.all([
-          EmployeeService.getAllEmployees(),
+        const [leaveRecordsData, settingsData] = await Promise.all([
           LeaveService.getAllLeaveRecords(),
           SettingsService.initializeSettings(),
         ]);
 
-        setEmployees(employeesData);
         setLeaveRecords(leaveRecordsData);
         setSettings(settingsData);
       } catch (error) {

@@ -6,7 +6,6 @@ import type { Employee } from '@/lib/types';
 export const Employees: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleCreateEmployee = () => {
     setEditingEmployee(null);
@@ -23,10 +22,6 @@ export const Employees: React.FC = () => {
     setEditingEmployee(null);
   };
 
-  const handleFormSuccess = () => {
-    setRefreshTrigger(prev => prev + 1); // Trigger refresh of employee list
-  };
-
   return (
     <div className="space-y-6 flex flex-col h-full overflow-hidden">
       <div>
@@ -37,14 +32,12 @@ export const Employees: React.FC = () => {
       <EmployeeList
         onEditEmployee={handleEditEmployee}
         onCreateEmployee={handleCreateEmployee}
-        refreshTrigger={refreshTrigger}
       />
 
       <EmployeeForm
         open={showForm}
         onClose={handleFormClose}
         employee={editingEmployee}
-        onSuccess={handleFormSuccess}
       />
     </div>
   );

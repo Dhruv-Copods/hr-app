@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TableBody,
@@ -11,26 +11,21 @@ import { Button } from '@/components/ui/button';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { EmployeeService } from '@/lib/employeeService';
 import type { Employee } from '@/lib/types';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEmployee } from '@/hooks/EmployeeContext';
 
 interface EmployeeListProps {
   onEditEmployee: (employee: Employee) => void;
   onCreateEmployee: () => void;
-  refreshTrigger?: number;
 }
 
 export const EmployeeList: React.FC<EmployeeListProps> = ({
   onEditEmployee,
   onCreateEmployee,
-  refreshTrigger
 }) => {
   const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { employees, loading, error, deleteEmployee, refreshEmployees } = useEmployee();
   const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -88,23 +83,6 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     }
   ];
 
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await EmployeeService.getAllEmployees();
-      setEmployees(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch employees');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployees();
-  }, [refreshTrigger]);
-
   const handleDeleteEmployee = (id: string) => {
     setDeleteEmployeeId(id);
     setIsDeleteModalOpen(true);
@@ -114,13 +92,11 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
     if (!deleteEmployeeId) return;
 
     try {
-      await EmployeeService.deleteEmployee(deleteEmployeeId);
-      await fetchEmployees(); // Refresh the list
-      toast.success('Employee deleted successfully');
-    } catch (err) {
-      console.error('Error deleting employee:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to delete employee');
-    } finally {
+      await deleteEmployee(deleteEmployeeId);
+      setIsDeleteModalOpen(false);
+      setDeleteEmployeeId(null);
+    } catch {
+      // Error handling is done in the context
       setIsDeleteModalOpen(false);
       setDeleteEmployeeId(null);
     }
@@ -149,7 +125,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
         <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={fetchEmployees} variant="outline">
+            <Button onClick={refreshEmployees} variant="outline">
               Try Again
             </Button>
           </div>

@@ -12,10 +12,10 @@ import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { EmployeeService } from '@/lib/employeeService';
 import { LeaveService } from '@/lib/leaveService';
 import { SettingsService } from '@/lib/settingsService';
 import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord, Holiday } from '@/lib/types';
+import { useEmployee } from '@/hooks/EmployeeContext';
 
 interface DateRange {
   from: Date | undefined;
@@ -27,7 +27,7 @@ interface DaySelection {
 }
 
 export const LeaveManagement: React.FC = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { employees } = useEmployee();
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [daySelections, setDaySelections] = useState<DaySelection>({});
@@ -43,20 +43,8 @@ export const LeaveManagement: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchEmployees();
     fetchHolidays();
   }, []);
-
-
-
-  const fetchEmployees = async () => {
-    try {
-      const data = await EmployeeService.getAllEmployees();
-      setEmployees(data);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    }
-  };
 
   const fetchHolidays = async () => {
     try {

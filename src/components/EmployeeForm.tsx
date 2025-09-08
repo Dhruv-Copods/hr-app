@@ -32,8 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { EmployeeService } from '@/lib/employeeService';
 import { type Employee, type CreateEmployeeData, DEPARTMENTS, DEPARTMENT_DESIGNATIONS } from '@/lib/types';
+import { useEmployee } from '@/hooks/EmployeeContext';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -53,15 +53,14 @@ interface EmployeeFormProps {
   open: boolean;
   onClose: () => void;
   employee?: Employee | null;
-  onSuccess: () => void;
 }
 
 export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   open,
   onClose,
   employee,
-  onSuccess,
 }) => {
+  const { createEmployee, updateEmployee } = useEmployee();
   const [loading, setLoading] = useState(false);
   const isEditing = !!employee;
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
@@ -131,16 +130,15 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       setLoading(true);
 
       if (isEditing && employee?.id) {
-        await EmployeeService.updateEmployee(employee.id, data);
+        await updateEmployee(employee.id, data);
       } else {
-        await EmployeeService.createEmployee(data as CreateEmployeeData);
+        await createEmployee(data as CreateEmployeeData);
       }
 
-      onSuccess();
       onClose();
     } catch (error) {
       console.error('Error saving employee:', error);
-      // You could add toast notifications here
+      // Error handling is done in the context
     } finally {
       setLoading(false);
     }

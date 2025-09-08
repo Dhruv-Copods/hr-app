@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
+import { EmployeeProvider } from '@/hooks/EmployeeProvider';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Layout } from '@/components/Layout';
 import { Login } from '@/pages/Login';
@@ -15,7 +16,8 @@ import { Toaster } from '@/components/ui/sonner';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <EmployeeProvider>
+        <Router>
         <Routes>
           {/* Public route - redirects to dashboard if already authenticated */}
           <Route
@@ -125,8 +127,9 @@ function App() {
             }
           />
         </Routes>
-      </Router>
-      <Toaster />
+        </Router>
+        <Toaster />
+      </EmployeeProvider>
     </AuthProvider>
   );
 }
