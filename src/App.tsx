@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { EmployeeProvider } from '@/hooks/EmployeeProvider';
+import { SettingsProvider } from '@/hooks/SettingsProvider';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Layout } from '@/components/Layout';
 import { Login } from '@/pages/Login';
@@ -17,7 +18,8 @@ function App() {
   return (
     <AuthProvider>
       <EmployeeProvider>
-        <Router>
+        <SettingsProvider>
+          <Router>
         <Routes>
           {/* Public route - redirects to dashboard if already authenticated */}
           <Route
@@ -126,9 +128,10 @@ function App() {
               </AuthGuard>
             }
           />
-        </Routes>
-        </Router>
-        <Toaster />
+          </Routes>
+          </Router>
+          <Toaster />
+        </SettingsProvider>
       </EmployeeProvider>
     </AuthProvider>
   );

@@ -10,16 +10,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, CalendarDays, Edit3, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CompanySettings, Holiday, HolidayType, CreateHolidayData } from '@/lib/types';
-import { initializeSettings, updateSettings } from '@/lib/settingsService';
+import type { Holiday, HolidayType, CreateHolidayData } from '@/lib/types';
+import { useSettings } from '@/hooks/SettingsContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export const Settings: React.FC = () => {
-  const [settings, setSettings] = useState<CompanySettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { settings, loading, updateLeaveSettings, addHoliday, updateHoliday, removeHoliday } = useSettings();
 
-  // Leave policy state
+  // Leave policy state - sync with settings
   const [leaveSettings, setLeaveSettings] = useState({
     ptoYearly: 20,
     ptoMonthly: 2,
@@ -48,43 +47,18 @@ export const Settings: React.FC = () => {
   });
   const [editingHolidayDate, setEditingHolidayDate] = useState<Date | undefined>(undefined);
 
-  // Load settings on component mount
+  // Sync leave settings with context settings
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setIsLoading(true);
-        const loadedSettings = await initializeSettings();
-        setSettings(loadedSettings);
-        setLeaveSettings({
-          ptoYearly: loadedSettings.ptoYearly,
-          ptoMonthly: loadedSettings.ptoMonthly,
-          wfhYearly: loadedSettings.wfhYearly,
-          wfhMonthly: loadedSettings.wfhMonthly,
-        });
-      } catch (error) {
-        console.error('Error loading settings:', error);
-        toast.error('Failed to load settings. Using defaults.');
-        const defaultSettings: CompanySettings = {
-          ptoYearly: 20,
-          ptoMonthly: 2,
-          wfhYearly: 12,
-          wfhMonthly: 1,
-          holidays: [],
-        };
-        setSettings(defaultSettings);
-        setLeaveSettings({
-          ptoYearly: 20,
-          ptoMonthly: 2,
-          wfhYearly: 12,
-          wfhMonthly: 1,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (settings) {
+      setLeaveSettings({
+        ptoYearly: settings.ptoYearly,
+        ptoMonthly: settings.ptoMonthly,
+        wfhYearly: settings.wfhYearly,
+        wfhMonthly: settings.wfhMonthly,
+      });
+    }
+  }, [settings]);
 
-    loadSettings();
-  }, []);
 
   // Leave settings functions
   const handleLeaveSettingChange = (field: keyof typeof leaveSettings, value: string) => {
@@ -100,12 +74,7 @@ export const Settings: React.FC = () => {
 
     setIsLeaveSaving(true);
     try {
-      const savedSettings = await updateSettings({
-        ...settings,
-        ...leaveSettings,
-      });
-      setSettings(savedSettings);
-      toast.success('Leave policies saved successfully!');
+      await updateLeaveSettings(leaveSettings);
     } catch (error) {
       console.error('Failed to save leave settings:', error);
       toast.error('Failed to save leave policies. Please try again.');
@@ -126,33 +95,14 @@ export const Settings: React.FC = () => {
   };
 
   const handleAddHoliday = async () => {
-    if (!settings) return;
-
     if (!newHoliday.name.trim() || !newHoliday.date) {
       toast.error('Please provide a holiday name and date');
       return;
     }
 
-    // Check for duplicate dates in existing settings
-    const existingHoliday = settings.holidays.find(h => h.date === newHoliday.date);
-    if (existingHoliday) {
-      toast.error('A holiday already exists for this date');
-      return;
-    }
-
     setIsHolidaySaving(true);
     try {
-      const holiday: Holiday = {
-        id: `holiday-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        ...newHoliday,
-      };
-
-      const savedSettings = await updateSettings({
-        ...settings,
-        holidays: [...settings.holidays, holiday],
-      });
-
-      setSettings(savedSettings);
+      await addHoliday(newHoliday);
 
       // Reset form
       setNewHoliday({
@@ -162,31 +112,20 @@ export const Settings: React.FC = () => {
         description: '',
       });
       setSelectedDate(undefined);
-
-      toast.success('Holiday added successfully!');
     } catch (error) {
       console.error('Failed to add holiday:', error);
-      toast.error('Failed to add holiday. Please try again.');
+      // Error toast is handled by the context
     } finally {
       setIsHolidaySaving(false);
     }
   };
 
   const handleRemoveHoliday = async (holidayId: string) => {
-    if (!settings) return;
-
     try {
-      const updatedHolidays = settings.holidays.filter(h => h.id !== holidayId);
-      const savedSettings = await updateSettings({
-        ...settings,
-        holidays: updatedHolidays,
-      });
-
-      setSettings(savedSettings);
-      toast.success('Holiday removed successfully!');
+      await removeHoliday(holidayId);
     } catch (error) {
       console.error('Failed to remove holiday:', error);
-      toast.error('Failed to remove holiday. Please try again.');
+      // Error toast is handled by the context
     }
   };
 
@@ -214,24 +153,13 @@ export const Settings: React.FC = () => {
   };
 
   const handleSaveEditedHoliday = async () => {
-    if (!editingHolidayId || !editingHolidayData.name.trim() || !editingHolidayData.date || !settings) {
+    if (!editingHolidayId || !editingHolidayData.name.trim() || !editingHolidayData.date) {
       toast.error('Please provide a holiday name and date');
       return;
     }
 
     try {
-      const updatedHolidays = settings.holidays.map(h =>
-        h.id === editingHolidayId
-          ? { ...h, ...editingHolidayData }
-          : h
-      );
-
-      const savedSettings = await updateSettings({
-        ...settings,
-        holidays: updatedHolidays,
-      });
-
-      setSettings(savedSettings);
+      await updateHoliday(editingHolidayId, editingHolidayData);
       setEditingHolidayId(null);
       setEditingHolidayData({
         date: '',
@@ -240,11 +168,9 @@ export const Settings: React.FC = () => {
         description: '',
       });
       setEditingHolidayDate(undefined);
-
-      toast.success('Holiday updated successfully!');
     } catch (error) {
       console.error('Failed to save edited holiday:', error);
-      toast.error('Failed to save holiday changes. Please try again.');
+      // Error toast is handled by the context
     }
   };
 
@@ -265,7 +191,7 @@ export const Settings: React.FC = () => {
     return settings.holidays.some(holiday => holiday.date === dateString);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex justify-center items-center h-full">

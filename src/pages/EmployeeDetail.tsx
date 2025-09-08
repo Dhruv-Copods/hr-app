@@ -26,16 +26,15 @@ import {
   FileText
 } from 'lucide-react';
 import { getLeaveRecordsByEmployee, updateLeaveRecord, deleteLeaveRecord } from '@/lib/leaveService';
+import { getEmployeeById } from '@/lib/employeeService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useEmployee } from '@/hooks/EmployeeContext';
 
 export const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getEmployeeById } = useEmployee();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +62,7 @@ export const EmployeeDetail: React.FC = () => {
     try {
       setLoading(true);
 
-      const employeeData = getEmployeeById(id);
+      const employeeData = await getEmployeeById(id);
 
       if (!employeeData) {
         toast.error('Employee not found');
