@@ -66,9 +66,9 @@ export const LeaveManagement: React.FC = () => {
     }
   };
 
-  const isGovernmentHoliday = (date: Date): Holiday | null => {
+  const isHoliday = (date: Date): Holiday | null => {
     const dateKey = format(date, 'yyyy-MM-dd');
-    return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'government') || null;
+    return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'holiday') || null;
   };
 
   const isOptionalHoliday = (date: Date): Holiday | null => {
@@ -94,8 +94,8 @@ export const LeaveManagement: React.FC = () => {
       }
     }
 
-    // Check if it's a government holiday (these should be disabled)
-    if (isGovernmentHoliday(date)) {
+    // Check if it's a holiday (these should be disabled)
+    if (isHoliday(date)) {
       return true;
     }
 
@@ -107,8 +107,8 @@ export const LeaveManagement: React.FC = () => {
 
     const current = new Date(dateRange.from);
     while (current <= dateRange.to) {
-      // Skip government holidays when checking for conflicts
-      if (!isGovernmentHoliday(current) && isDateDisabled(current)) {
+      // Skip holidays when checking for conflicts
+      if (!isHoliday(current) && isDateDisabled(current)) {
         return true;
       }
       current.setDate(current.getDate() + 1);
@@ -146,16 +146,16 @@ export const LeaveManagement: React.FC = () => {
   const getDayTypeBadge = (type: LeaveDayType, date: Date) => {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
     const isDisabled = isDateDisabled(date);
-    const governmentHoliday = isGovernmentHoliday(date);
+    const holiday = isHoliday(date);
     const optionalHoliday = isOptionalHoliday(date);
 
-    if (isDisabled && !governmentHoliday) {
+    if (isDisabled && !holiday) {
       return <Badge className="bg-red-100 text-red-800 border-red-200">Already Booked</Badge>;
     }
 
-    if (governmentHoliday) {
-      return <Badge className="bg-red-100 text-red-800 border-red-200" title={governmentHoliday.name}>
-        Gov Holiday
+    if (holiday) {
+      return <Badge className="bg-red-100 text-red-800 border-red-200" title={holiday.name}>
+        Holiday
       </Badge>;
     }
 
@@ -520,20 +520,20 @@ export const LeaveManagement: React.FC = () => {
 
                   {/* Day Type Breakdown */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {/* Government Holidays */}
+                    {/* Holidays */}
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <Label className="text-xs font-medium text-red-700 uppercase tracking-wide">Gov Holidays</Label>
+                      <Label className="text-xs font-medium text-red-700 uppercase tracking-wide">Holidays</Label>
                       <p className="text-lg font-semibold text-red-800 mt-1">
                         {(() => {
-                          let govHolidayCount = 0;
+                          let holidayCount = 0;
                           const current = new Date(dateRange.from!);
                           while (current <= dateRange.to!) {
-                            if (isGovernmentHoliday(current)) {
-                              govHolidayCount++;
+                            if (isHoliday(current)) {
+                              holidayCount++;
                             }
                             current.setDate(current.getDate() + 1);
                           }
-                          return govHolidayCount;
+                          return holidayCount;
                         })()}
                       </p>
                       <p className="text-xs text-red-600">holidays</p>
@@ -566,7 +566,7 @@ export const LeaveManagement: React.FC = () => {
                           let workingDays = 0;
                           const current = new Date(dateRange.from!);
                           while (current <= dateRange.to!) {
-                            if (current.getDay() !== 0 && current.getDay() !== 6 && !isGovernmentHoliday(current)) {
+                            if (current.getDay() !== 0 && current.getDay() !== 6 && !isHoliday(current)) {
                               workingDays++;
                             }
                             current.setDate(current.getDate() + 1);
@@ -583,7 +583,7 @@ export const LeaveManagement: React.FC = () => {
                       <p className="text-lg font-semibold text-red-800 mt-1">
                         {Object.entries(daySelections).filter(([dateKey, type]) => {
                           const date = new Date(dateKey);
-                          return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isGovernmentHoliday(date);
+                          return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date);
                         }).length}
                       </p>
                       <p className="text-xs text-red-600">working days</p>
@@ -595,7 +595,7 @@ export const LeaveManagement: React.FC = () => {
                       <p className="text-lg font-semibold text-blue-800 mt-1">
                         {Object.entries(daySelections).filter(([dateKey, type]) => {
                           const date = new Date(dateKey);
-                          return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isGovernmentHoliday(date);
+                          return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date);
                         }).length}
                       </p>
                       <p className="text-xs text-blue-600">working days</p>
@@ -643,14 +643,14 @@ export const LeaveManagement: React.FC = () => {
                       } ${
                         isDisabled ? 'bg-red-50 border-red-200' : ''
                       } ${
-                        isGovernmentHoliday(currentDate) ? 'bg-red-50 border-red-200' : ''
+                        isHoliday(currentDate) ? 'bg-red-50 border-red-200' : ''
                       } ${
                         isOptionalHoliday(currentDate) ? 'bg-yellow-50 border-yellow-200' : ''
                       }`}>
                         <div className="flex items-center gap-3">
                           <span className={`font-medium ${
                             isWeekend ? 'text-orange-800' :
-                            isGovernmentHoliday(currentDate) ? 'text-red-800' :
+                            isHoliday(currentDate) ? 'text-red-800' :
                             isOptionalHoliday(currentDate) ? 'text-yellow-800' : ''
                           }`}>
                             {format(current, 'EEE, MMM dd')}

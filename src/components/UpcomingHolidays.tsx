@@ -27,7 +27,7 @@ export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) 
   };
 
   const getHolidayTypeColor = (type: string) => {
-    return type === 'government' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+    return type === 'holiday' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
   };
 
   const capitalizeFirstLetter = (str: string) => {

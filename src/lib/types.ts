@@ -79,7 +79,7 @@ export type CreateLeaveRecordData = Omit<LeaveRecord, 'id' | 'createdAt' | 'upda
 export type UpdateLeaveRecordData = Partial<Omit<LeaveRecord, 'id' | 'createdAt'>>;
 
 // Holiday Types
-export type HolidayType = 'government' | 'optional';
+export type HolidayType = 'holiday' | 'optional';
 
 export interface Holiday {
   id: string;

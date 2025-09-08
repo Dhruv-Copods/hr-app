@@ -32,7 +32,7 @@ export const Settings: React.FC = () => {
   const [newHoliday, setNewHoliday] = useState<CreateHolidayData>({
     date: '',
     name: '',
-    type: 'optional',
+    type: 'holiday',
     description: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -43,7 +43,7 @@ export const Settings: React.FC = () => {
   const [editingHolidayData, setEditingHolidayData] = useState<CreateHolidayData>({
     date: '',
     name: '',
-    type: 'optional',
+    type: 'holiday',
     description: '',
   });
   const [editingHolidayDate, setEditingHolidayDate] = useState<Date | undefined>(undefined);
@@ -158,7 +158,7 @@ export const Settings: React.FC = () => {
       setNewHoliday({
         date: '',
         name: '',
-        type: 'optional',
+        type: 'holiday',
         description: '',
       });
       setSelectedDate(undefined);
@@ -207,7 +207,7 @@ export const Settings: React.FC = () => {
     setEditingHolidayData({
       date: '',
       name: '',
-      type: 'optional',
+      type: 'holiday',
       description: '',
     });
     setEditingHolidayDate(undefined);
@@ -236,7 +236,7 @@ export const Settings: React.FC = () => {
       setEditingHolidayData({
         date: '',
         name: '',
-        type: 'optional',
+        type: 'holiday',
         description: '',
       });
       setEditingHolidayDate(undefined);
@@ -442,7 +442,7 @@ export const Settings: React.FC = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="government">Government Holiday</SelectItem>
+                          <SelectItem value="holiday">Holiday</SelectItem>
                           <SelectItem value="optional">Optional Holiday</SelectItem>
                         </SelectContent>
                       </Select>
@@ -541,7 +541,7 @@ export const Settings: React.FC = () => {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="government">Government Holiday</SelectItem>
+                                        <SelectItem value="holiday">Holiday</SelectItem>
                                         <SelectItem value="optional">Optional Holiday</SelectItem>
                                       </SelectContent>
                                     </Select>
@@ -609,17 +609,17 @@ export const Settings: React.FC = () => {
                                   <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium text-gray-900">{holiday.name}</span>
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "text-xs border-0",
-                                          holiday.type === 'government'
-                                            ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                            : "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                                        )}
-                                      >
-                                        {holiday.type === 'government' ? 'Government' : 'Optional'}
-                                      </Badge>
+                                      {holiday.type !== 'holiday' && (
+                                        <Badge
+                                          variant="outline"
+                                          className={cn(
+                                            "text-xs border-0",
+                                            "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                                          )}
+                                        >
+                                          Optional
+                                        </Badge>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="text-sm text-gray-600 mt-1">
