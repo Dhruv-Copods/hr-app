@@ -49,7 +49,7 @@ export const TodaysStatus: React.FC<TodaysStatusProps> = ({ todayLeave, todayWFH
           <CalendarDays className="h-5 w-5 text-red-500" />
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-2 max-h-50 overflow-y-auto">
+          <div className="space-y-2 max-h-44 overflow-y-auto">
             {todayLeave.length > 0 ? (
               todayLeave.map((item, index) => (
                 <EmployeeListItem

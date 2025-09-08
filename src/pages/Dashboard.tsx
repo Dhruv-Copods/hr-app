@@ -2,20 +2,70 @@ import React from 'react';
 import { TodaysStatus } from '@/components/TodaysStatus';
 import { EmployeeStats } from '@/components/EmployeeStats';
 import { UpcomingHolidays } from '@/components/UpcomingHolidays';
-import { useDashboardData } from '@/hooks/useDashboardData';
+import { useEmployee } from '@/hooks/EmployeeContext';
+import { useLeave } from '@/hooks/LeaveContext';
+import { useSettings } from '@/hooks/SettingsContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import type { Employee, LeaveRecord, LeaveDayType } from '@/lib/types';
+
+interface TodayLeaveData {
+  employee: Employee;
+  leaveType: LeaveDayType;
+  leaveRecord: LeaveRecord;
+}
 
 export const Dashboard: React.FC = () => {
-  const {
-    todayLeave,
-    todayWFH,
-    totalEmployees,
-    departmentStats,
-    upcomingHolidays,
-    loading,
-    error
-  } = useDashboardData();
+  // Use data from providers
+  const { employees, loading: employeeLoading, error: employeeError } = useEmployee();
+  const { leaveRecords, holidays, loading: leaveLoading, error: leaveError } = useLeave();
+  const { loading: settingsLoading } = useSettings();
+
+  // Combined loading state from all sources
+  const loading = employeeLoading || leaveLoading || settingsLoading;
+
+  // Combined error state
+  const error = employeeError || leaveError;
+
+  // Calculate today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+
+  // Find employees on leave today
+  const todayLeave: TodayLeaveData[] = [];
+  const todayWFH: TodayLeaveData[] = [];
+
+  leaveRecords.forEach(record => {
+    const todayStatus = record.days[today];
+    if (todayStatus) {
+      const employee = employees.find(emp => emp.employeeId === record.employeeId);
+      if (employee) {
+        const leaveData = { employee, leaveType: todayStatus, leaveRecord: record };
+        if (todayStatus === 'leave') {
+          todayLeave.push(leaveData);
+        } else if (todayStatus === 'wfh') {
+          todayWFH.push(leaveData);
+        }
+      }
+    }
+  });
+
+  // Calculate department statistics
+  const departmentStats = employees.reduce((acc, employee) => {
+    acc[employee.department] = (acc[employee.department] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get upcoming holidays (next 30 days)
+  const upcomingHolidays = holidays?.filter(holiday => {
+    const holidayDate = new Date(holiday.date);
+    const todayDate = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(todayDate.getDate() + 30);
+
+    return holidayDate >= todayDate && holidayDate <= thirtyDaysFromNow;
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
+
+  const totalEmployees = employees.length;
 
 
   if (loading) {
