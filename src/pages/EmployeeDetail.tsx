@@ -413,7 +413,6 @@ export const EmployeeDetail: React.FC = () => {
                         <TableHead>Period</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Days</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Reason</TableHead>
                         <TableHead>Created On</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -421,14 +420,37 @@ export const EmployeeDetail: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {leaveRecords.map((record) => {
-                        const leaveDays = Object.values(record.days).filter(day => day === 'leave').length;
-                        const wfhDays = Object.values(record.days).filter(day => day === 'wfh').length;
+                        // Calculate leave and WFH days excluding weekends
+                        const leaveDays = Object.entries(record.days)
+                          .filter(([dateKey, dayType]) => {
+                            const date = new Date(dateKey);
+                            return dayType === 'leave' && date.getDay() !== 0 && date.getDay() !== 6; // Exclude weekends
+                          }).length;
+
+                        const wfhDays = Object.entries(record.days)
+                          .filter(([dateKey, dayType]) => {
+                            const date = new Date(dateKey);
+                            return dayType === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6; // Exclude weekends
+                          }).length;
+
                         const totalDays = leaveDays + wfhDays;
 
                         // Calculate actual period from leave days
                         const leaveDates = Object.keys(record.days).sort();
                         const actualStartDate = leaveDates.length > 0 ? leaveDates[0] : record.startDate;
                         const actualEndDate = leaveDates.length > 0 ? leaveDates[leaveDates.length - 1] : record.endDate;
+
+                        // Calculate number of weekends in the period
+                        const startDate = new Date(actualStartDate);
+                        const endDate = new Date(actualEndDate);
+                        let weekendCount = 0;
+                        const current = new Date(startDate);
+                        while (current <= endDate) {
+                          if (current.getDay() === 0 || current.getDay() === 6) { // 0 = Sunday, 6 = Saturday
+                            weekendCount++;
+                          }
+                          current.setDate(current.getDate() + 1);
+                        }
 
                         return (
                           <TableRow key={record.id}>
@@ -449,15 +471,15 @@ export const EmployeeDetail: React.FC = () => {
                                     {wfhDays} WFH
                                   </Badge>
                                 )}
+                                {weekendCount > 0 && (
+                                  <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                                    {weekendCount} Weekend{weekendCount > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="text-sm font-medium">{totalDays} days</div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="default">
-                                Active
-                              </Badge>
                             </TableCell>
                             <TableCell>
                               <div className="text-sm text-gray-600 max-w-xs truncate">
@@ -609,47 +631,69 @@ export const EmployeeDetail: React.FC = () => {
                         <div className="space-y-2">
                           {Object.entries(editFormData.days)
                             .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                            .map(([date, dayType]) => (
-                            <div key={date} className="flex items-center gap-4 p-3 border rounded-lg">
-                              <div className="text-sm font-medium">
+                            .map(([date, dayType]) => {
+                            const dateObj = new Date(date);
+                            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 = Sunday, 6 = Saturday
+
+                            return (
+                            <div key={date} className={`flex items-center gap-4 p-3 border rounded-lg ${
+                              isWeekend ? 'bg-orange-50 border-orange-200' : ''
+                            }`}>
+                              <div className={`text-sm font-medium ${
+                                isWeekend ? 'text-orange-800' : ''
+                              }`}>
                                 {format(new Date(date), 'MMM d, yyyy')}
+                                {isWeekend && (
+                                  <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                                    Weekend
+                                  </Badge>
+                                )}
                               </div>
-                              <Select
-                                value={dayType}
-                                onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
-                              >
-                                <SelectTrigger className="w-32">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="leave">
-                                    <div className="flex items-center gap-2">
-                                      <XCircle className="h-4 w-4 text-red-500" />
-                                      Leave
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="wfh">
-                                    <div className="flex items-center gap-2">
-                                      <Home className="h-4 w-4 text-blue-500" />
-                                      WFH
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="ml-auto"
-                                onClick={() => {
-                                  const newDays = { ...editFormData.days };
-                                  delete newDays[date];
-                                  setEditFormData(prev => ({ ...prev, days: newDays }));
-                                }}
-                              >
-                                Remove
-                              </Button>
+                              {!isWeekend && (
+                                <Select
+                                  value={dayType}
+                                  onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
+                                  disabled={isWeekend}
+                                >
+                                  <SelectTrigger className={`w-32 ${isWeekend ? 'opacity-50' : ''}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="leave">
+                                      <div className="flex items-center gap-2">
+                                        <XCircle className="h-4 w-4 text-red-500" />
+                                        Leave
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="wfh">
+                                      <div className="flex items-center gap-2">
+                                        <Home className="h-4 w-4 text-blue-500" />
+                                        WFH
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {
+                                !isWeekend && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="ml-auto"
+                                    onClick={() => {
+                                      const newDays = { ...editFormData.days };
+                                      delete newDays[date];
+                                      setEditFormData(prev => ({ ...prev, days: newDays }));
+                                    }}
+                                    disabled={isWeekend}
+                                  >
+                                    Remove
+                                  </Button>
+                                )
+                              }
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
