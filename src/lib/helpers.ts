@@ -198,3 +198,61 @@ export function isDateDisabled(date: Date, existingLeaveRecords: LeaveRecord[], 
 
   return false;
 }
+
+/**
+ * Calculates prorated leave allocation based on employee's joining date
+ * @param joiningDate - Employee's date of joining
+ * @param selectedYear - The year for which to calculate allocation
+ * @param monthlyPto - Monthly PTO allocation
+ * @param monthlyWfh - Monthly WFH allocation
+ * @param yearlyPtoLimit - Maximum yearly PTO limit from settings
+ * @param yearlyWfhLimit - Maximum yearly WFH limit from settings
+ * @returns Object with prorated PTO and WFH allowances (capped by yearly limits)
+ */
+export function calculateProratedLeaveAllocation(
+  joiningDate: string,
+  selectedYear: number,
+  monthlyPto: number,
+  monthlyWfh: number,
+  yearlyPtoLimit: number,
+  yearlyWfhLimit: number
+): { ptoYearly: number; wfhYearly: number; ptoMonthly: number; wfhMonthly: number } {
+  const joinDate = new Date(joiningDate);
+  const joinYear = joinDate.getFullYear();
+  const joinMonth = joinDate.getMonth(); // 0-based (0 = January, 11 = December)
+
+  // If employee joined before the selected year, they get full allocation (but capped by yearly limits)
+  if (joinYear < selectedYear) {
+    return {
+      ptoYearly: Math.min(monthlyPto * 12, yearlyPtoLimit),
+      wfhYearly: Math.min(monthlyWfh * 12, yearlyWfhLimit),
+      ptoMonthly: monthlyPto,
+      wfhMonthly: monthlyWfh,
+    };
+  }
+
+  // If employee joined after the selected year, they get no allocation for that year
+  if (joinYear > selectedYear) {
+    return {
+      ptoYearly: 0,
+      wfhYearly: 0,
+      ptoMonthly: 0,
+      wfhMonthly: 0,
+    };
+  }
+
+  // If employee joined in the selected year, calculate prorated allocation
+  // Months are 0-based, so joining in May (month 4) means they get 7 months of allocation (May to December = 7 months)
+  const remainingMonths = 12 - joinMonth;
+
+  const proratedPto = monthlyPto * remainingMonths;
+  const proratedWfh = monthlyWfh * remainingMonths;
+
+  // Cap the prorated amounts by the yearly limits
+  return {
+    ptoYearly: Math.min(proratedPto, yearlyPtoLimit),
+    wfhYearly: Math.min(proratedWfh, yearlyWfhLimit),
+    ptoMonthly: monthlyPto,
+    wfhMonthly: monthlyWfh,
+  };
+}

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useEmployee } from '@/hooks/EmployeeContext';
 import { useLeave } from '@/hooks/LeaveContext';
 import { useSettings } from '@/hooks/SettingsContext';
+import { calculateProratedLeaveAllocation } from '@/lib/helpers';
 
 interface EmployeeAttendanceData {
   employee: Employee;
@@ -62,6 +63,16 @@ export const Attendance: React.FC = () => {
         isOverboardWFH: false,
       };
     }
+
+    // Calculate prorated leave allocation based on joining date
+    const proratedAllocation = calculateProratedLeaveAllocation(
+      employee.dateOfJoining,
+      selectedYear,
+      settings.ptoMonthly,
+      settings.wfhMonthly,
+      settings.ptoYearly,
+      settings.wfhYearly
+    );
 
     const employeeLeaves = leaveRecords.filter(record => record.employeeId === employee.employeeId);
 
@@ -118,9 +129,9 @@ export const Attendance: React.FC = () => {
       else if (type === 'wfh') yearlyWFH++;
     });
 
-    // Calculate remaining leaves
-    const remainingLeaves = settings.ptoYearly - yearlyLeaves;
-    const remainingWFH = settings.wfhYearly - yearlyWFH;
+    // Calculate remaining leaves using prorated allocation
+    const remainingLeaves = proratedAllocation.ptoYearly - yearlyLeaves;
+    const remainingWFH = proratedAllocation.wfhYearly - yearlyWFH;
 
     // Calculate monthly remaining balances when in monthly view
     let monthlyRemainingLeaves: number | undefined;
@@ -129,8 +140,8 @@ export const Attendance: React.FC = () => {
     let isOverboardMonthlyWFH: boolean | undefined;
 
     if (viewMode === 'monthly') {
-      monthlyRemainingLeaves = settings.ptoMonthly - monthlyLeaves;
-      monthlyRemainingWFH = settings.wfhMonthly - monthlyWFH;
+      monthlyRemainingLeaves = proratedAllocation.ptoMonthly - monthlyLeaves;
+      monthlyRemainingWFH = proratedAllocation.wfhMonthly - monthlyWFH;
       isOverboardMonthlyLeaves = monthlyRemainingLeaves < 0;
       isOverboardMonthlyWFH = monthlyRemainingWFH < 0;
     }
@@ -337,8 +348,8 @@ export const Attendance: React.FC = () => {
             </CardTitle>
             <CardDescription>
               {viewMode === 'monthly'
-                ? `Showing monthly leave and WFH usage for ${format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy')} with monthly limits (PTO: ${settings?.ptoMonthly || 0}, WFH: ${settings?.wfhMonthly || 0})`
-                : `Showing yearly leave and WFH usage for ${selectedYear}`
+                ? `Showing monthly leave and WFH usage for ${format(new Date(selectedYear, selectedMonth - 1), 'MMMM yyyy')} with prorated monthly limits based on employee joining dates`
+                : `Showing yearly leave and WFH usage for ${selectedYear} with prorated yearly allowances based on employee joining dates`
               }
             </CardDescription>
           </CardHeader>
