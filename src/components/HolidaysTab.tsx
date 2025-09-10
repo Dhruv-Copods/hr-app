@@ -217,6 +217,7 @@ export const HolidaysTab: React.FC = () => {
                       mode="single"
                       selected={selectedDate}
                       onSelect={handleDateSelect}
+                      showOutsideDays={false}
                       disabled={isDateDisabled}
                       initialFocus
                     />
@@ -317,6 +318,7 @@ export const HolidaysTab: React.FC = () => {
                                     mode="single"
                                     selected={editingHolidayDate}
                                     onSelect={handleEditingHolidayDateSelect}
+                                    showOutsideDays={false}
                                     initialFocus
                                   />
                                 </PopoverContent>

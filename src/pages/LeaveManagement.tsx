@@ -402,15 +402,28 @@ export const LeaveManagement: React.FC = () => {
                         selected={dateRange}
                         onSelect={handleDateSelect}
                         numberOfMonths={2}
-                        disabled={(date) => isDateDisabled(date, existingLeaveRecords, holidays)}
+                        showOutsideDays={false}
+                        fromMonth={new Date()}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date < today || isDateDisabled(date, existingLeaveRecords, holidays) || isHoliday(date, holidays) !== null;
+                        }}
                         modifiers={{
+                          booked: (date) => isDateDisabled(date, existingLeaveRecords, holidays),
+                          holiday: (date) => isHoliday(date, holidays) !== null,
                           optionalHoliday: (date) => isOptionalHoliday(date, holidays) !== null,
+                          past: (date) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return date < today;
+                          }
                         }}
                         modifiersClassNames={{
-                          optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold hover:bg-yellow-200",
-                        }}
-                        classNames={{
-                          disabled: "bg-red-100 text-red-800 font-semibold hover:bg-red-200",
+                          booked: "bg-red-100 text-red-800 font-semibold rounded-md",
+                          holiday: "bg-red-100 text-red-800 font-semibold rounded-md",
+                          optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold rounded-md",
+                          past: "text-gray-400 font-normal",
                         }}
                       />
                     </PopoverContent>
@@ -615,7 +628,7 @@ export const LeaveManagement: React.FC = () => {
                           <Button
                             size="sm"
                             variant={dayType === 'leave' ? 'default' : 'outline'}
-                            className={dayType === 'leave' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : ''}
+                            className={dayType === 'leave' ? `bg-red-50 text-red-700 border-red-200 ${isDisabled ? '' : 'hover:bg-red-100'}` : ''}
                             onClick={() => handleDayTypeChange(currentDate, 'leave')}
                             disabled={isWeekend || isDisabled}
                           >
@@ -624,7 +637,7 @@ export const LeaveManagement: React.FC = () => {
                           <Button
                             size="sm"
                             variant={dayType === 'wfh' ? 'default' : 'outline'}
-                            className={dayType === 'wfh' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : ''}
+                            className={dayType === 'wfh' ? `bg-blue-50 text-blue-700 border-blue-200 ${isDisabled ? '' : 'hover:bg-blue-100'}` : ''}
                             onClick={() => handleDayTypeChange(currentDate, 'wfh')}
                             disabled={isWeekend || isDisabled}
                           >

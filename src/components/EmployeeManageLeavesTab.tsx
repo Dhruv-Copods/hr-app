@@ -292,6 +292,23 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                       mode="single"
                       selected={editFormData.startDate}
                       onSelect={(date) => setEditFormData(prev => ({ ...prev, startDate: date }))}
+                      showOutsideDays={false}
+                      fromMonth={new Date()}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date < today;
+                      }}
+                      modifiers={{
+                        past: (date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date < today;
+                        }
+                      }}
+                      modifiersClassNames={{
+                        past: "text-gray-400 font-normal",
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -321,6 +338,23 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                       mode="single"
                       selected={editFormData.endDate}
                       onSelect={(date) => setEditFormData(prev => ({ ...prev, endDate: date }))}
+                      showOutsideDays={false}
+                      fromMonth={new Date()}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date < today;
+                      }}
+                      modifiers={{
+                        past: (date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date < today;
+                        }
+                      }}
+                      modifiersClassNames={{
+                        past: "text-gray-400 font-normal",
+                      }}
                       initialFocus
                     />
                   </PopoverContent>

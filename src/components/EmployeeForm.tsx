@@ -297,6 +297,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                               onSelect={(date) => {
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}
+                              showOutsideDays={false}
+                              fromMonth={new Date()}
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
@@ -343,6 +345,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                               onSelect={(date) => {
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}
+                              showOutsideDays={false}
+                              fromMonth={new Date()}
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }
