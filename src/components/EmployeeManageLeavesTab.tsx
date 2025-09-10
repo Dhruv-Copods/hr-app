@@ -20,6 +20,7 @@ import {
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { LeaveRecord } from '@/lib/types';
+import { useSettings } from '@/hooks/SettingsContext';
 
 interface EmployeeManageLeavesTabProps {
   leaveRecords: LeaveRecord[];
@@ -32,6 +33,7 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
   onEditRecord,
   onDeleteRecord
 }) => {
+  const { settings } = useSettings();
   const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteRecordId, setDeleteRecordId] = useState<string | null>(null);
@@ -102,6 +104,18 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
     }));
   };
 
+  const isHoliday = (date: Date) => {
+    if (!settings?.holidays) return false;
+    const dateString = format(date, 'yyyy-MM-dd');
+    return settings.holidays.some(holiday => holiday.date === dateString);
+  };
+
+  const getHolidayInfo = (date: Date) => {
+    if (!settings?.holidays) return null;
+    const dateString = format(date, 'yyyy-MM-dd');
+    return settings.holidays.find(holiday => holiday.date === dateString) || null;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -137,37 +151,44 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                 </TableHeader>
                 <TableBody>
                   {leaveRecords.map((record) => {
-                    // Calculate leave and WFH days excluding weekends
-                    const leaveDays = Object.entries(record.days)
-                      .filter(([dateKey, dayType]) => {
-                        const date = new Date(dateKey);
-                        return dayType === 'leave' && date.getDay() !== 0 && date.getDay() !== 6; // Exclude weekends
-                      }).length;
-
-                    const wfhDays = Object.entries(record.days)
-                      .filter(([dateKey, dayType]) => {
-                        const date = new Date(dateKey);
-                        return dayType === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6; // Exclude weekends
-                      }).length;
-
-                    const totalDays = leaveDays + wfhDays;
-
                     // Calculate actual period from leave days
                     const leaveDates = Object.keys(record.days).sort();
                     const actualStartDate = leaveDates.length > 0 ? leaveDates[0] : record.startDate;
                     const actualEndDate = leaveDates.length > 0 ? leaveDates[leaveDates.length - 1] : record.endDate;
 
-                    // Calculate number of weekends in the period
+                    // Calculate number of weekends and holidays in the period
                     const startDate = new Date(actualStartDate);
                     const endDate = new Date(actualEndDate);
                     let weekendCount = 0;
+                    let holidayCount = 0;
                     const current = new Date(startDate);
                     while (current <= endDate) {
-                      if (current.getDay() === 0 || current.getDay() === 6) { // 0 = Sunday, 6 = Saturday
+                      const isWeekend = current.getDay() === 0 || current.getDay() === 6; // 0 = Sunday, 6 = Saturday
+                      const isHolidayDate = isHoliday(current);
+
+                      if (isWeekend) {
                         weekendCount++;
+                      }
+                      if (isHolidayDate) {
+                        holidayCount++;
                       }
                       current.setDate(current.getDate() + 1);
                     }
+
+                    // Calculate leave and WFH days excluding weekends and holidays
+                    const leaveDays = Object.entries(record.days)
+                      .filter(([dateKey, dayType]) => {
+                        const date = new Date(dateKey);
+                        return dayType === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date); // Exclude weekends and holidays
+                      }).length;
+
+                    const wfhDays = Object.entries(record.days)
+                      .filter(([dateKey, dayType]) => {
+                        const date = new Date(dateKey);
+                        return dayType === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date); // Exclude weekends and holidays
+                      }).length;
+
+                    const totalDays = leaveDays + wfhDays;
 
                     return (
                       <TableRow key={record.id}>
@@ -177,20 +198,25 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex gap-2 overflow-hidden">
                             {leaveDays > 0 && (
-                              <Badge variant="destructive" className="text-xs">
+                              <Badge variant="destructive" className="text-xs whitespace-nowrap">
                                 {leaveDays} Leave
                               </Badge>
                             )}
                             {wfhDays > 0 && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-xs whitespace-nowrap">
                                 {wfhDays} WFH
                               </Badge>
                             )}
                             {weekendCount > 0 && (
-                              <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                              <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs whitespace-nowrap">
                                 {weekendCount} Weekend{weekendCount > 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                            {holidayCount > 0 && (
+                              <Badge className="bg-red-100 text-red-800 border-red-200 text-xs whitespace-nowrap">
+                                {holidayCount} Holiday{holidayCount > 1 ? 's' : ''}
                               </Badge>
                             )}
                           </div>
@@ -385,13 +411,18 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                         .map(([date, dayType]) => {
                         const dateObj = new Date(date);
                         const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 = Sunday, 6 = Saturday
+                        const isHolidayDate = isHoliday(dateObj);
+                        const holidayInfo = getHolidayInfo(dateObj);
+                        const isDisabled = isWeekend || isHolidayDate;
 
                         return (
                         <div key={date} className={`flex items-center gap-4 p-3 border rounded-lg ${
-                          isWeekend ? 'bg-orange-50 border-orange-200' : ''
+                          isWeekend ? 'bg-orange-50 border-orange-200' :
+                          isHolidayDate ? 'bg-red-50 border-red-200' : ''
                         }`}>
                           <div className={`text-sm font-medium ${
-                            isWeekend ? 'text-orange-800' : ''
+                            isWeekend ? 'text-orange-800' :
+                            isHolidayDate ? 'text-red-800' : ''
                           }`}>
                             {format(new Date(date), 'MMM d, yyyy')}
                             {isWeekend && (
@@ -399,14 +430,19 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                                 Weekend
                               </Badge>
                             )}
+                            {isHolidayDate && holidayInfo && (
+                              <Badge className="ml-2 bg-red-100 text-red-800 border-red-200 text-xs">
+                                {holidayInfo.type === 'holiday' ? 'Holiday' : 'Optional Holiday'}
+                              </Badge>
+                            )}
                           </div>
-                          {!isWeekend && (
+                          {!isDisabled && (
                             <Select
                               value={dayType}
                               onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
-                              disabled={isWeekend}
+                              disabled={isDisabled}
                             >
-                              <SelectTrigger className={`w-32 ${isWeekend ? 'opacity-50' : ''}`}>
+                              <SelectTrigger className={`w-32 ${isDisabled ? 'opacity-50' : ''}`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -426,7 +462,7 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                             </Select>
                           )}
                           {
-                            !isWeekend && (
+                            !isDisabled && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -436,7 +472,7 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                                   delete newDays[date];
                                   setEditFormData(prev => ({ ...prev, days: newDays }));
                                 }}
-                                disabled={isWeekend}
+                                disabled={isDisabled}
                               >
                                 Remove
                               </Button>
