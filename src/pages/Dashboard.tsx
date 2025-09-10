@@ -122,7 +122,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Scrollable Dashboard Content */}
       <div className="flex-1 overflow-y-auto mt-6">
-        <div className="space-y-6 pb-6">
+        <div className="flex flex-col space-y-6 h-full">
           {/* Today's Status - Primary Focus */}
           <TodaysStatus todayLeave={todayLeave} todayWFH={todayWFH} />
 

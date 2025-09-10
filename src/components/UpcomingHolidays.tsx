@@ -12,7 +12,7 @@ interface UpcomingHolidaysProps {
 export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) => {
 
   return (
-    <Card>
+    <Card className='h-full overflow-auto'>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
@@ -20,7 +20,7 @@ export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) 
         </CardTitle>
         <CardDescription>Next 30 days</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className='h-full overflow-auto'>
         {holidays.length > 0 ? (
           <div className="space-y-3">
             {holidays.slice(0, 5).map((holiday) => (
