@@ -116,8 +116,58 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
     return settings.holidays.find(holiday => holiday.date === dateString) || null;
   };
 
+  // Calculate leave statistics for current year
+  const currentYear = new Date().getFullYear();
+  const currentYearRecords = leaveRecords.filter(record => {
+    const recordYear = new Date(record.startDate).getFullYear();
+    return recordYear === currentYear;
+  });
+
+  let totalLeaveDays = 0;
+  let totalWfhDays = 0;
+
+  currentYearRecords.forEach(record => {
+    Object.entries(record.days).forEach(([dateString, dayType]) => {
+      const recordYear = new Date(dateString).getFullYear();
+      if (recordYear === currentYear) {
+        const date = new Date(dateString);
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+
+        // Only count non-weekend days
+        if (!isWeekend) {
+          if (dayType === 'leave') totalLeaveDays++;
+          if (dayType === 'wfh') totalWfhDays++;
+        }
+      }
+    });
+  });
+
   return (
     <div className="space-y-6">
+      {/* Leave Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Leave Statistics (Current Year)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-red-600">{totalLeaveDays}</div>
+              <div className="text-sm text-gray-500">Leave Days</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">{totalWfhDays}</div>
+              <div className="text-sm text-gray-500">WFH Days</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-600">{currentYearRecords.length}</div>
+              <div className="text-sm text-gray-500">Total Records</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

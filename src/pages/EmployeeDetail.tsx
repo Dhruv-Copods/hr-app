@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 import { getEmployeeById } from '@/lib/employeeService';
 import type { Employee, LeaveRecord } from '@/lib/types';
 import { toast } from 'sonner';
 import { useLeave } from '@/hooks/LeaveContext';
 import { EmployeeOverviewTab } from '@/components/EmployeeOverviewTab';
 import { EmployeeManageLeavesTab } from '@/components/EmployeeManageLeavesTab';
+import { EmployeeForm } from '@/components/EmployeeForm';
 
 export const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ export const EmployeeDetail: React.FC = () => {
   const { updateLeaveRecord, deleteLeaveRecord, getEmployeeLeaveRecords } = useLeave();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -48,46 +50,6 @@ export const EmployeeDetail: React.FC = () => {
     }
   };
 
-  const calculateLeaveStats = () => {
-    if (!employee) return { totalLeaveDays: 0, totalWfhDays: 0, totalRecords: 0 };
-
-    const currentYear = new Date().getFullYear();
-    const uniqueLeaveDates = new Set<string>();
-    const uniqueWfhDates = new Set<string>();
-
-    // Get leave records for this employee from the provider
-    const employeeLeaveRecords = getEmployeeLeaveRecords(employee.employeeId);
-
-    employeeLeaveRecords.forEach(record => {
-      Object.entries(record.days).forEach(([dateString, dayType]) => {
-        const recordYear = new Date(dateString).getFullYear();
-        if (recordYear === currentYear) {
-          // Parse date to check if it's a weekend
-          const date = new Date(dateString);
-          const dayOfWeek = date.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-
-          // Only count non-weekend days
-          if (!isWeekend) {
-            if (dayType === 'leave') uniqueLeaveDates.add(dateString);
-            if (dayType === 'wfh') uniqueWfhDates.add(dateString);
-          }
-        }
-      });
-    });
-
-    const currentYearRecords = employeeLeaveRecords.filter(record => {
-      const recordYear = new Date(record.startDate).getFullYear();
-      return recordYear === currentYear;
-    });
-
-    return {
-      totalLeaveDays: uniqueLeaveDates.size,
-      totalWfhDays: uniqueWfhDates.size,
-      totalRecords: currentYearRecords.length
-    };
-  };
-
   const handleEditRecord = async (record: LeaveRecord, updatedData: Partial<LeaveRecord>) => {
     try {
       await updateLeaveRecord(record.id!, updatedData);
@@ -110,6 +72,14 @@ export const EmployeeDetail: React.FC = () => {
     }
   };
 
+  const handleEditEmployee = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleEditDialogClose = () => {
+    setEditDialogOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -124,8 +94,6 @@ export const EmployeeDetail: React.FC = () => {
   if (!employee) {
     return null; // Will redirect due to error handling in useEffect
   }
-
-  const stats = calculateLeaveStats();
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -151,15 +119,25 @@ export const EmployeeDetail: React.FC = () => {
           </div>
         </div>
         
-        {/* Action Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/employees')}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEditEmployee}
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/employees')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="pt-6 overflow-hidden h-full flex flex-col">
@@ -169,7 +147,7 @@ export const EmployeeDetail: React.FC = () => {
         </TabsList>
 
         <TabsContent value="overview" className="mt-3 overflow-y-auto flex-1">
-          <EmployeeOverviewTab employee={employee} stats={stats} />
+          <EmployeeOverviewTab employee={employee} />
         </TabsContent>
 
         <TabsContent value="manage-leaves" className="mt-3 overflow-y-auto flex-1">
@@ -180,6 +158,13 @@ export const EmployeeDetail: React.FC = () => {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Employee Dialog */}
+      <EmployeeForm
+        open={editDialogOpen}
+        onClose={handleEditDialogClose}
+        employee={employee}
+      />
     </div>
   );
 };
