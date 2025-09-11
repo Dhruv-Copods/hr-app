@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -374,7 +375,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     <FormItem>
                       <FormLabel>Current Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Main Street, New York, NY 10001" {...field} />
+                        <Textarea placeholder="123 Main Street, New York, NY 10001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -388,7 +389,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     <FormItem>
                       <FormLabel>Permanent Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="456 Oak Avenue, Springfield, IL 62701" {...field} />
+                        <Textarea placeholder="456 Oak Avenue, Springfield, IL 62701" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -401,7 +402,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </Form>
         </div>
 
-        <DialogFooter className="flex justify-end flex-shrink-0 border-t pt-6">
+        <DialogFooter className="flex justify-end flex-shrink-0 pt-6">
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
