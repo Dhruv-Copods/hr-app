@@ -2,6 +2,7 @@ export interface Employee {
   id?: string;
   employeeId: string; // Auto-generated unique employee ID
   name: string;
+  employeeType: 'employee' | 'consultant';
   department: string;
   designation: string;
   dateOfJoining: string;

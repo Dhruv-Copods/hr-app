@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ import { useEmployee } from '@/hooks/EmployeeContext';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  employeeType: z.enum(['employee', 'consultant'], { message: 'Employee type is required' }),
   department: z.string().min(1, 'Department is required'),
   designation: z.string().min(1, 'Designation is required'),
   dateOfJoining: z.string().min(1, 'Date of joining is required'),
@@ -70,6 +72,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
       name: '',
+      employeeType: 'employee',
       department: '',
       designation: '',
       dateOfJoining: '',
@@ -85,6 +88,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     if (employee && open) {
       form.reset({
         name: employee.name,
+        employeeType: employee.employeeType,
         department: employee.department,
         designation: employee.designation,
         dateOfJoining: employee.dateOfJoining,
@@ -98,6 +102,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     } else if (!employee && open) {
       form.reset({
         name: '',
+        employeeType: 'employee',
         department: '',
         designation: '',
         dateOfJoining: '',
@@ -148,7 +153,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] min-w-5xl flex flex-col">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] mx-4 sm:mx-6 flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>
             {isEditing ? 'Edit Employee' : 'Add New Employee'}
@@ -163,10 +168,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
         <div className="flex-1 overflow-y-auto">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Basic Information</h3>
                 <FormField
                   control={form.control}
                   name="name"
@@ -181,7 +185,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
                   <FormField
                     control={form.control}
                     name="officialEmail"
@@ -211,10 +215,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </div>
               </div>
 
-              {/* Employment Details */}
+              {/* Department and Designation */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Employment Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
                   <FormField
                     control={form.control}
                     name="department"
@@ -223,7 +226,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                         <FormLabel>Department</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                           </FormControl>
@@ -247,7 +250,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                         <FormLabel>Designation</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDepartment}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder={selectedDepartment ? "Select designation" : "Select department first"} />
                             </SelectTrigger>
                           </FormControl>
@@ -265,7 +268,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <FormField
                     control={form.control}
                     name="dateOfJoining"
@@ -278,7 +282,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  "w-full pl-3 text-left font-normal",
+                                  "w-full pl-3 text-left font-normal h-10",
                                   !field.value && "text-muted-foreground"
                                 )}
                               >
@@ -299,10 +303,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}
                               showOutsideDays={false}
-                              fromMonth={new Date()}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
+                              disabled={(date) => date > new Date()}
                               initialFocus
                               captionLayout="dropdown"
                               fromYear={1950}
@@ -326,7 +327,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  "w-full pl-3 text-left font-normal",
+                                  "w-full pl-3 text-left font-normal h-10",
                                   !field.value && "text-muted-foreground"
                                 )}
                               >
@@ -347,13 +348,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}
                               showOutsideDays={false}
-                              fromMonth={new Date()}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
+                              disabled={(date) => date > new Date()}
                               initialFocus
                               captionLayout="dropdown"
-                              fromYear={1950}
+                              fromYear={1920}
                               toYear={new Date().getFullYear()}
                             />
                           </PopoverContent>
@@ -367,12 +365,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
               {/* Address */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Address</h3>
                 <FormField
                   control={form.control}
                   name="currentAddress"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mb-6">
                       <FormLabel>Current Address</FormLabel>
                       <FormControl>
                         <Textarea placeholder="123 Main Street, New York, NY 10001" {...field} />
@@ -397,12 +394,28 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 />
               </div>
 
+              {/* Consultant Toggle */}
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="isConsultant"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Consultant
+                </label>
+                <Switch
+                  id="isConsultant"
+                  checked={form.watch('employeeType') === 'consultant'}
+                  onCheckedChange={(checked) => {
+                    form.setValue('employeeType', checked ? 'consultant' : 'employee');
+                  }}
+                />
+              </div>
 
             </form>
           </Form>
         </div>
 
-        <DialogFooter className="flex justify-end flex-shrink-0 pt-6">
+        <DialogFooter className="flex justify-end flex-shrink-0">
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
