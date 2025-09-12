@@ -44,7 +44,7 @@ export const Settings: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-auto">
         <Tabs defaultValue="leave" className="h-full">
           <TabsList className="flex w-fit mb-5">
             <TabsTrigger value="leave" className="flex items-center gap-2">
@@ -58,12 +58,12 @@ export const Settings: React.FC = () => {
           </TabsList>
 
           {/* Leave Policies Tab */}
-          <TabsContent value="leave">
+          <TabsContent className='h-full overflow-auto' value="leave">
             <LeavePoliciesTab />
           </TabsContent>
 
           {/* Holidays Tab */}
-          <TabsContent value="holidays">
+          <TabsContent className='h-full overflow-auto' value="holidays">
             <HolidaysTab />
           </TabsContent>
         </Tabs>

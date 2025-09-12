@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarDays, Clock, Filter, Calendar, BarChart3 } from 'lucide-react';
+import { CalendarDays, Clock, Filter, Calendar, BarChart3, ChevronUp, ChevronDown } from 'lucide-react';
 import type { Employee, LeaveDayType, Designation } from '@/lib/types';
 import { DEPARTMENTS, DESIGNATIONS } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
@@ -44,6 +44,10 @@ export const Attendance: React.FC = () => {
     designation: 'all',
     search: '',
   });
+
+  // Sorting state
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Combined loading state from both providers
   const isLoading = leaveLoading || settingsLoading;
@@ -176,6 +180,78 @@ export const Attendance: React.FC = () => {
 
   // Calculate attendance data for filtered employees
   const attendanceData = filteredEmployees.map(calculateEmployeeAttendanceData);
+
+  // Sort attendance data
+  const sortedAttendanceData = useMemo(() => {
+    const sorted = [...attendanceData].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'name':
+          aValue = a.employee.name.toLowerCase();
+          bValue = b.employee.name.toLowerCase();
+          break;
+        case 'department':
+          aValue = a.employee.department.toLowerCase();
+          bValue = b.employee.department.toLowerCase();
+          break;
+        case 'designation':
+          aValue = a.employee.designation.toLowerCase();
+          bValue = b.employee.designation.toLowerCase();
+          break;
+        case 'leaves':
+          aValue = viewMode === 'monthly' ? a.monthlyLeaves : a.yearlyLeaves;
+          bValue = viewMode === 'monthly' ? b.monthlyLeaves : b.yearlyLeaves;
+          break;
+        case 'wfh':
+          aValue = viewMode === 'monthly' ? a.monthlyWFH : a.yearlyWFH;
+          bValue = viewMode === 'monthly' ? b.monthlyWFH : b.yearlyWFH;
+          break;
+        case 'ptoBalance':
+          if (viewMode === 'monthly') {
+            aValue = a.monthlyRemainingLeaves !== undefined ? a.monthlyRemainingLeaves : a.remainingLeaves;
+            bValue = b.monthlyRemainingLeaves !== undefined ? b.monthlyRemainingLeaves : b.remainingLeaves;
+          } else {
+            aValue = a.remainingLeaves;
+            bValue = b.remainingLeaves;
+          }
+          break;
+        case 'wfhBalance':
+          if (viewMode === 'monthly') {
+            aValue = a.monthlyRemainingWFH !== undefined ? a.monthlyRemainingWFH : a.remainingWFH;
+            bValue = b.monthlyRemainingWFH !== undefined ? b.monthlyRemainingWFH : b.remainingWFH;
+          } else {
+            aValue = a.remainingWFH;
+            bValue = b.remainingWFH;
+          }
+          break;
+        default:
+          aValue = a.employee.name.toLowerCase();
+          bValue = b.employee.name.toLowerCase();
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      } else {
+        const comparison = (aValue as number) - (bValue as number);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+    return sorted;
+  }, [attendanceData, sortBy, sortOrder, viewMode]);
+
+  // Handle sorting
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
 
   // Get departments and designations for filters
   const departments = DEPARTMENTS;
@@ -354,7 +430,7 @@ export const Attendance: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="w-full overflow-hidden">
-            {attendanceData.length === 0 ? (
+            {sortedAttendanceData.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p>No employees match the current filters</p>
               </div>
@@ -364,44 +440,163 @@ export const Attendance: React.FC = () => {
                   <table className="w-full caption-bottom text-sm relative" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                     <TableHeader className="bg-white sticky top-0 z-10">
                       <TableRow>
-                        <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200">Employee</TableHead>
-                        <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200">Department</TableHead>
-                        <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200">Designation</TableHead>
-                        <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <CalendarDays className="h-4 w-4" />
-                            Leaves
+                        <TableHead
+                          className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 cursor-pointer hover:bg-gray-50 select-none"
+                          onClick={() => handleSort('name')}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>Employee</span>
+                            <div className="flex flex-col">
+                              <ChevronUp
+                                className={`h-3 w-3 ${sortBy === 'name' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                              <ChevronDown
+                                className={`h-3 w-3 -mt-1 ${sortBy === 'name' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                            </div>
                           </div>
                         </TableHead>
-                        <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">
+                        <TableHead
+                          className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 cursor-pointer hover:bg-gray-50 select-none"
+                          onClick={() => handleSort('department')}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>Department</span>
+                            <div className="flex flex-col">
+                              <ChevronUp
+                                className={`h-3 w-3 ${sortBy === 'department' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                              <ChevronDown
+                                className={`h-3 w-3 -mt-1 ${sortBy === 'department' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                            </div>
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 cursor-pointer hover:bg-gray-50 select-none"
+                          onClick={() => handleSort('designation')}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>Designation</span>
+                            <div className="flex flex-col">
+                              <ChevronUp
+                                className={`h-3 w-3 ${sortBy === 'designation' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                              <ChevronDown
+                                className={`h-3 w-3 -mt-1 ${sortBy === 'designation' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                            </div>
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                          onClick={() => handleSort('leaves')}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <CalendarDays className="h-4 w-4" />
+                            <span>Leaves</span>
+                            <div className="flex flex-col">
+                              <ChevronUp
+                                className={`h-3 w-3 ${sortBy === 'leaves' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                              <ChevronDown
+                                className={`h-3 w-3 -mt-1 ${sortBy === 'leaves' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                            </div>
+                          </div>
+                        </TableHead>
+                        <TableHead
+                          className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                          onClick={() => handleSort('wfh')}
+                        >
                           <div className="flex items-center justify-center gap-1">
                             <Clock className="h-4 w-4" />
-                            WFH
+                            <span>WFH</span>
+                            <div className="flex flex-col">
+                              <ChevronUp
+                                className={`h-3 w-3 ${sortBy === 'wfh' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                              <ChevronDown
+                                className={`h-3 w-3 -mt-1 ${sortBy === 'wfh' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                              />
+                            </div>
                           </div>
                         </TableHead>
                         {viewMode === 'monthly' ? (
                           <>
-                            <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">
-                              <div className="flex flex-col items-center gap-1">
-                                <span>PTO</span>
+                            <TableHead
+                              className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                              onClick={() => handleSort('ptoBalance')}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <span>PTO Balance</span>
+                                <div className="flex flex-col">
+                                  <ChevronUp
+                                    className={`h-3 w-3 ${sortBy === 'ptoBalance' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                  <ChevronDown
+                                    className={`h-3 w-3 -mt-1 ${sortBy === 'ptoBalance' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                </div>
                               </div>
                             </TableHead>
-                            <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">
-                              <div className="flex flex-col items-center gap-1">
-                                <span>WFH</span>
+                            <TableHead
+                              className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                              onClick={() => handleSort('wfhBalance')}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <span>WFH Balance</span>
+                                <div className="flex flex-col">
+                                  <ChevronUp
+                                    className={`h-3 w-3 ${sortBy === 'wfhBalance' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                  <ChevronDown
+                                    className={`h-3 w-3 -mt-1 ${sortBy === 'wfhBalance' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                </div>
                               </div>
                             </TableHead>
                           </>
                         ) : (
                           <>
-                            <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">PTO Balance</TableHead>
-                            <TableHead className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center">WFH Balance</TableHead>
+                            <TableHead
+                              className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                              onClick={() => handleSort('ptoBalance')}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <span>PTO Balance</span>
+                                <div className="flex flex-col">
+                                  <ChevronUp
+                                    className={`h-3 w-3 ${sortBy === 'ptoBalance' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                  <ChevronDown
+                                    className={`h-3 w-3 -mt-1 ${sortBy === 'ptoBalance' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                </div>
+                              </div>
+                            </TableHead>
+                            <TableHead
+                              className="h-12 px-6 font-semibold text-gray-900 bg-white border-b-1 border-gray-200 text-center cursor-pointer hover:bg-gray-50 select-none"
+                              onClick={() => handleSort('wfhBalance')}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <span>WFH Balance</span>
+                                <div className="flex flex-col">
+                                  <ChevronUp
+                                    className={`h-3 w-3 ${sortBy === 'wfhBalance' && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                  <ChevronDown
+                                    className={`h-3 w-3 -mt-1 ${sortBy === 'wfhBalance' && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-300'}`}
+                                  />
+                                </div>
+                              </div>
+                            </TableHead>
                           </>
                         )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {attendanceData.map((data, index) => (
+                      {sortedAttendanceData.map((data, index) => (
                         <TableRow
                           key={data.employee.id}
                           className={`
