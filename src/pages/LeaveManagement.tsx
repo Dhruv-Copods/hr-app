@@ -403,27 +403,18 @@ export const LeaveManagement: React.FC = () => {
                         onSelect={handleDateSelect}
                         numberOfMonths={2}
                         showOutsideDays={false}
-                        fromMonth={new Date()}
                         disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return date < today || isDateDisabled(date, existingLeaveRecords, holidays) || isHoliday(date, holidays) !== null;
+                          return isDateDisabled(date, existingLeaveRecords, holidays) || isHoliday(date, holidays) !== null;
                         }}
                         modifiers={{
                           booked: (date) => isDateDisabled(date, existingLeaveRecords, holidays),
                           holiday: (date) => isHoliday(date, holidays) !== null,
                           optionalHoliday: (date) => isOptionalHoliday(date, holidays) !== null,
-                          past: (date) => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            return date < today;
-                          }
                         }}
                         modifiersClassNames={{
                           booked: "bg-red-100 text-red-800 font-semibold rounded-md",
                           holiday: "bg-red-100 text-red-800 font-semibold rounded-md",
                           optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold rounded-md",
-                          past: "text-gray-400 font-normal",
                         }}
                       />
                     </PopoverContent>
