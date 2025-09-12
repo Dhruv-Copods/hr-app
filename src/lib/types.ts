@@ -31,6 +31,7 @@ export const DESIGNATIONS = [
   // Engineering
   'Web Developer',
   'Mobile Developer',
+  "QA Engineer",
   // Design
   'Graphic Designer',
   'UX Designer',
@@ -50,7 +51,7 @@ export type Designation = typeof DESIGNATIONS[number];
 
 // Department to designations mapping
 export const DEPARTMENT_DESIGNATIONS = {
-  Engineering: ['Web Developer', 'Mobile Developer'],
+  Engineering: ['Web Developer', 'Mobile Developer', 'QA Engineer'],
   Design: ['Graphic Designer', 'UX Designer', 'Visual Designer', 'Product Designer'],
   Sales: ['Business Development Representative'],
   Marketing: ['Marketing Strategist', 'Digital Marketing Executive'],

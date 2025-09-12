@@ -317,6 +317,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                             <Calendar
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
+                              defaultMonth={field.value ? new Date(field.value) : new Date()}
                               onSelect={(date) => {
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}
@@ -362,6 +363,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                             <Calendar
                               mode="single"
                               selected={field.value ? new Date(field.value) : undefined}
+                              defaultMonth={field.value ? new Date(field.value) : new Date()}
                               onSelect={(date) => {
                                 field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                               }}

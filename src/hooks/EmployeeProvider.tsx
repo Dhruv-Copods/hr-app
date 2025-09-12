@@ -48,6 +48,8 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
       const updatedEmployee = await updateEmployeeService(id, data);
       setEmployees(prev => prev.map(emp => emp.id === id ? updatedEmployee : emp));
       toast.success('Employee updated successfully');
+      // Refetch all employees to ensure data consistency
+      await fetchEmployees();
       return updatedEmployee;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update employee';
@@ -55,7 +57,7 @@ export const EmployeeProvider: React.FC<EmployeeProviderProps> = ({ children }) 
       toast.error(errorMessage);
       throw err;
     }
-  }, []);
+  }, [fetchEmployees]);
 
   const deleteEmployee = useCallback(async (id: string): Promise<void> => {
     try {

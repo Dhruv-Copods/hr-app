@@ -78,6 +78,10 @@ export const EmployeeDetail: React.FC = () => {
 
   const handleEditDialogClose = () => {
     setEditDialogOpen(false);
+    // Refetch employee data after editing to ensure we have the latest data
+    if (id) {
+      fetchEmployeeData();
+    }
   };
 
   if (loading) {
