@@ -12,7 +12,7 @@ interface UpcomingHolidaysProps {
 export const UpcomingHolidays: React.FC<UpcomingHolidaysProps> = ({ holidays }) => {
 
   return (
-    <Card className='h-full overflow-auto'>
+    <Card className='h-full overflow-auto min-h-[200px]'>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />

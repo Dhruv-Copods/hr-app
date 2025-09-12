@@ -339,206 +339,238 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
       {/* Edit Leave Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Edit Leave Record</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="mb-2">Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !editFormData.startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {editFormData.startDate ? (
-                        format(editFormData.startDate, "PPP")
-                      ) : (
-                        <span>Pick start date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={editFormData.startDate}
-                      onSelect={(date) => setEditFormData(prev => ({ ...prev, startDate: date }))}
-                      showOutsideDays={false}
-                      fromMonth={new Date()}
-                      disabled={(date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        return date < today;
-                      }}
-                      modifiers={{
-                        past: (date) => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return date < today;
-                        }
-                      }}
-                      modifiersClassNames={{
-                        past: "text-gray-400 font-normal",
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label className="mb-2">End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !editFormData.endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {editFormData.endDate ? (
-                        format(editFormData.endDate, "PPP")
-                      ) : (
-                        <span>Pick end date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-4 pr-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="mb-2">Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !editFormData.startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editFormData.startDate ? (
+                          format(editFormData.startDate, "PPP")
+                        ) : (
+                          <span>Pick start date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editFormData.startDate}
+                        onSelect={(date) => {
+                          setEditFormData(prev => {
+                            const newData = { ...prev, startDate: date };
+                            // If start date is after end date, clear end date
+                            if (date && prev.endDate && date > prev.endDate) {
+                              newData.endDate = undefined;
+                            }
+                            return newData;
+                          });
+                        }}
+                        showOutsideDays={false}
+                        disabled={(date) => {
+                          // If end date is selected, disable dates after end date
+                          if (editFormData.endDate) {
+                            const endDate = new Date(editFormData.endDate);
+                            endDate.setHours(23, 59, 59, 999);
+                            return date > endDate;
+                          }
+                          return false;
+                        }}
+                        modifiers={{
+                          disabled: (date) => {
+                            // If end date is selected, disable dates after end date
+                            if (editFormData.endDate) {
+                              const endDate = new Date(editFormData.endDate);
+                              endDate.setHours(23, 59, 59, 999);
+                              return date > endDate;
+                            }
+                            return false;
+                          }
+                        }}
+                        modifiersClassNames={{
+                          disabled: "text-gray-400 font-normal",
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="mb-2">End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !editFormData.endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editFormData.endDate ? (
+                          format(editFormData.endDate, "PPP")
+                        ) : (
+                          <span>Pick end date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={editFormData.endDate}
                       onSelect={(date) => setEditFormData(prev => ({ ...prev, endDate: date }))}
                       showOutsideDays={false}
-                      fromMonth={new Date()}
+                      fromMonth={editFormData.startDate || new Date()}
                       disabled={(date) => {
+                        // If start date is selected, disable dates before start date
+                        if (editFormData.startDate) {
+                          const startDate = new Date(editFormData.startDate);
+                          startDate.setHours(0, 0, 0, 0);
+                          return date < startDate;
+                        }
+                        // If no start date, disable past dates (before today)
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         return date < today;
                       }}
                       modifiers={{
-                        past: (date) => {
+                        disabled: (date) => {
+                          // If start date is selected, disable dates before start date
+                          if (editFormData.startDate) {
+                            const startDate = new Date(editFormData.startDate);
+                            startDate.setHours(0, 0, 0, 0);
+                            return date < startDate;
+                          }
+                          // If no start date, disable past dates (before today)
                           const today = new Date();
                           today.setHours(0, 0, 0, 0);
                           return date < today;
                         }
                       }}
                       modifiersClassNames={{
-                        past: "text-gray-400 font-normal",
+                        disabled: "text-gray-400 font-normal",
                       }}
                       initialFocus
                     />
                   </PopoverContent>
-                </Popover>
+                  </Popover>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <Label htmlFor="reason" className="mb-2">Reason</Label>
-              <Textarea
-                id="reason"
-                value={editFormData.reason}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, reason: e.target.value }))}
-                placeholder="Enter reason for leave..."
-              />
-            </div>
+              <div>
+                <Label htmlFor="reason" className="mb-2">Reason</Label>
+                <Textarea
+                  id="reason"
+                  value={editFormData.reason}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Enter reason for leave..."
+                />
+              </div>
 
-            <div className="flex flex-col">
-              <Label>Days Configuration</Label>
-              <div className="mt-2 flex-1 min-h-0">
-                <div className="border rounded-lg p-4 max-h-80 overflow-y-auto">
-                  {Object.keys(editFormData.days).length === 0 ? (
-                    <p className="text-sm text-gray-500">No days configured yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {Object.entries(editFormData.days)
-                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                        .map(([date, dayType]) => {
-                        const dateObj = new Date(date);
-                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 = Sunday, 6 = Saturday
-                        const isHolidayDate = isHoliday(dateObj);
-                        const holidayInfo = getHolidayInfo(dateObj);
-                        const isDisabled = isWeekend || isHolidayDate;
+              <div className="flex flex-col">
+                <Label>Days Configuration</Label>
+                <div className="mt-2">
+                  <div className="border rounded-lg p-4 max-h-80 overflow-y-auto">
+                    {Object.keys(editFormData.days).length === 0 ? (
+                      <p className="text-sm text-gray-500">No days configured yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {Object.entries(editFormData.days)
+                          .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                          .map(([date, dayType]) => {
+                          const dateObj = new Date(date);
+                          const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6; // 0 = Sunday, 6 = Saturday
+                          const isHolidayDate = isHoliday(dateObj);
+                          const holidayInfo = getHolidayInfo(dateObj);
+                          const isDisabled = isWeekend || isHolidayDate;
 
-                        return (
-                        <div key={date} className={`flex items-center gap-4 p-3 border rounded-lg ${
-                          isWeekend ? 'bg-orange-50 border-orange-200' :
-                          isHolidayDate ? 'bg-red-50 border-red-200' : ''
-                        }`}>
-                          <div className={`text-sm font-medium ${
-                            isWeekend ? 'text-orange-800' :
-                            isHolidayDate ? 'text-red-800' : ''
+                          return (
+                          <div key={date} className={`flex items-center gap-4 p-3 border rounded-lg ${
+                            isWeekend ? 'bg-orange-50 border-orange-200' :
+                            isHolidayDate ? 'bg-red-50 border-red-200' : ''
                           }`}>
-                            {format(new Date(date), 'MMM d, yyyy')}
-                            {isWeekend && (
-                              <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200 text-xs">
-                                Weekend
-                              </Badge>
-                            )}
-                            {isHolidayDate && holidayInfo && (
-                              <Badge className="ml-2 bg-red-100 text-red-800 border-red-200 text-xs">
-                                {holidayInfo.type === 'holiday' ? 'Holiday' : 'Optional Holiday'}
-                              </Badge>
-                            )}
-                          </div>
-                          {!isDisabled && (
-                            <Select
-                              value={dayType}
-                              onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
-                              disabled={isDisabled}
-                            >
-                              <SelectTrigger className={`w-32 ${isDisabled ? 'opacity-50' : ''}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="leave">
-                                  <div className="flex items-center gap-2">
-                                    <XCircle className="h-4 w-4 text-red-500" />
-                                    Leave
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="wfh">
-                                  <div className="flex items-center gap-2">
-                                    <Home className="h-4 w-4 text-blue-500" />
-                                    WFH
-                                  </div>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {
-                            !isDisabled && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="ml-auto"
-                                onClick={() => {
-                                  const newDays = { ...editFormData.days };
-                                  delete newDays[date];
-                                  setEditFormData(prev => ({ ...prev, days: newDays }));
-                                }}
+                            <div className={`text-sm font-medium ${
+                              isWeekend ? 'text-orange-800' :
+                              isHolidayDate ? 'text-red-800' : ''
+                            }`}>
+                              {format(new Date(date), 'MMM d, yyyy')}
+                              {isWeekend && (
+                                <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200 text-xs">
+                                  Weekend
+                                </Badge>
+                              )}
+                              {isHolidayDate && holidayInfo && (
+                                <Badge className="ml-2 bg-red-100 text-red-800 border-red-200 text-xs">
+                                  {holidayInfo.type === 'holiday' ? 'Holiday' : 'Optional Holiday'}
+                                </Badge>
+                              )}
+                            </div>
+                            {!isDisabled && (
+                              <Select
+                                value={dayType}
+                                onValueChange={(value: 'leave' | 'wfh' | 'present') => handleDateChange(date, value)}
                                 disabled={isDisabled}
                               >
-                                Remove
-                              </Button>
-                            )
-                          }
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                                <SelectTrigger className={`w-32 ${isDisabled ? 'opacity-50' : ''}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="leave">
+                                    <div className="flex items-center gap-2">
+                                      <XCircle className="h-4 w-4 text-red-500" />
+                                      Leave
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="wfh">
+                                    <div className="flex items-center gap-2">
+                                      <Home className="h-4 w-4 text-blue-500" />
+                                      WFH
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {
+                              !isDisabled && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="ml-auto"
+                                  onClick={() => {
+                                    const newDays = { ...editFormData.days };
+                                    delete newDays[date];
+                                    setEditFormData(prev => ({ ...prev, days: newDays }));
+                                  }}
+                                  disabled={isDisabled}
+                                >
+                                  Remove
+                                </Button>
+                              )
+                            }
+                          </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
               Cancel
             </Button>
