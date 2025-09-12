@@ -48,6 +48,7 @@ const employeeSchema = z.object({
   permanentAddress: z.string().min(1, 'Permanent address is required'),
   officialEmail: z.string().email('Invalid official email address'),
   personalEmail: z.string().email('Invalid personal email address'),
+  mobileNumber: z.string().optional(),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -81,6 +82,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       permanentAddress: '',
       officialEmail: '',
       personalEmail: '',
+      mobileNumber: '',
     },
   });
 
@@ -97,6 +99,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         permanentAddress: employee.permanentAddress,
         officialEmail: employee.officialEmail,
         personalEmail: employee.personalEmail,
+        mobileNumber: employee.mobileNumber || '',
       });
       setSelectedDepartment(employee.department);
     } else if (!employee && open) {
@@ -111,6 +114,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         permanentAddress: '',
         officialEmail: '',
         personalEmail: '',
+        mobileNumber: '',
       });
       setSelectedDepartment('');
     }
@@ -213,6 +217,20 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="mobileNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mobile Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Department and Designation */}

@@ -11,6 +11,7 @@ export interface Employee {
   permanentAddress: string;
   officialEmail: string;
   personalEmail: string;
+  mobileNumber?: string;
   createdAt?: string;
   updatedAt?: string;
 }
