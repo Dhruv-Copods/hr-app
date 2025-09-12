@@ -3,10 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   User,
-  Mail,
-  Briefcase,
-  Building,
-  CalendarIcon
+  Briefcase
 } from 'lucide-react';
 import { formatDateLong } from '@/lib/helpers';
 import type { Employee } from '@/lib/types';
@@ -39,28 +36,19 @@ export const EmployeeOverviewTab: React.FC<EmployeeOverviewTabProps> = ({
 
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Official Email</Label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p>{employee.officialEmail}</p>
-                  </div>
+                  <p>{employee.officialEmail}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Date of Birth</Label>
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-gray-400" />
-                    <p>{formatDateLong(employee.dateOfBirth)}</p>
-                  </div>
+                  <p>{formatDateLong(employee.dateOfBirth)}</p>
                 </div>
 
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Personal Email</Label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p>{employee.personalEmail}</p>
-                  </div>
+                  <p>{employee.personalEmail}</p>
                 </div>
               </div>
             </div>
@@ -92,10 +80,7 @@ export const EmployeeOverviewTab: React.FC<EmployeeOverviewTabProps> = ({
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Department</Label>
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4 text-gray-400" />
-                    <p>{employee.department}</p>
-                  </div>
+                  <p>{employee.department}</p>
                 </div>
               </div>
 
@@ -108,10 +93,7 @@ export const EmployeeOverviewTab: React.FC<EmployeeOverviewTabProps> = ({
             </div>
             <div className="mt-4">
               <Label className="text-sm font-medium text-gray-500">Date of Joining</Label>
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-gray-400" />
-                <p>{formatDateLong(employee.dateOfJoining)}</p>
-              </div>
+              <p>{formatDateLong(employee.dateOfJoining)}</p>
             </div>
           </CardContent>
         </Card>
