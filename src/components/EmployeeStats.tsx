@@ -38,7 +38,7 @@ export const EmployeeStats: React.FC<EmployeeStatsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            {departments.slice(0, 4).map(([department, count]) => (
+            {departments.map(([department, count]) => (
               <div key={department} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <PieChart className="h-3 w-3 text-muted-foreground" />
@@ -48,11 +48,6 @@ export const EmployeeStats: React.FC<EmployeeStatsProps> = ({
               </div>
             ))}
           </div>
-          {departments.length > 4 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              +{departments.length - 4} more departments
-            </p>
-          )}
         </CardContent>
       </Card>
     </div>
