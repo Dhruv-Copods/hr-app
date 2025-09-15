@@ -46,7 +46,7 @@ export const Settings: React.FC = () => {
       {/* Tabs */}
       <div className="flex-1 overflow-auto">
         <Tabs defaultValue="leave" className="h-full">
-          <TabsList className="flex w-fit mb-5">
+          <TabsList className="flex w-fit mb-3">
             <TabsTrigger value="leave" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Leave Policies

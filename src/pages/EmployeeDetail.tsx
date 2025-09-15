@@ -115,11 +115,11 @@ export const EmployeeDetail: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {employee.name}
               </h1>
-              <Badge variant="secondary" className="text-xs">
-                {employee.department}
+              <Badge variant="outline" className="text-xs">
+                {employee.employeeType === 'employee' ? 'Employee' : 'Consultant'}
               </Badge>
             </div>
-            <p className="text-sm text-gray-600 mt-1">{employee.designation}</p>
+            <p className="text-sm text-gray-600 mt-1">{employee.department} - {employee.designation}</p>
           </div>
         </div>
         

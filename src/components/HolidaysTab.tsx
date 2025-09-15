@@ -156,8 +156,8 @@ export const HolidaysTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 h-full">
+      <Card className='py-0 pt-6 h-full'>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="h-6 w-6" />
