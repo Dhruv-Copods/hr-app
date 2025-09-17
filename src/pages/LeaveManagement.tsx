@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { CalendarIcon, Plus, Search, X, Check } from 'lucide-react';
+import { CalendarIcon, Plus, Search, X, Check, ChevronDown, ChevronRight, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -26,6 +26,13 @@ interface DaySelection {
   [date: string]: LeaveDayType;
 }
 
+interface LeaveEntry {
+  id: string;
+  dateRange: DateRange;
+  daySelections: DaySelection;
+  reason: string;
+}
+
 export const LeaveManagement: React.FC = () => {
   const { employees } = useEmployee();
   const {
@@ -35,9 +42,8 @@ export const LeaveManagement: React.FC = () => {
   } = useLeave();
 
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
-  const [daySelections, setDaySelections] = useState<DaySelection>({});
-  const [reason, setReason] = useState('');
+  const [leaveEntries, setLeaveEntries] = useState<LeaveEntry[]>([]);
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [existingLeaveRecords, setExistingLeaveRecords] = useState<LeaveRecord[]>([]);
 
@@ -57,11 +63,11 @@ export const LeaveManagement: React.FC = () => {
   };
 
 
-  const hasConflictingDates = (): boolean => {
-    if (!dateRange.from || !dateRange.to) return false;
+  const hasConflictingDates = (entry: LeaveEntry): boolean => {
+    if (!entry.dateRange.from || !entry.dateRange.to) return false;
 
-    const current = new Date(dateRange.from);
-    while (current <= dateRange.to) {
+    const current = new Date(entry.dateRange.from);
+    while (current <= entry.dateRange.to) {
       // Skip holidays when checking for conflicts
       if (!isHoliday(current, holidays) && isDateDisabled(current, existingLeaveRecords, holidays)) {
         return true;
@@ -72,107 +78,182 @@ export const LeaveManagement: React.FC = () => {
     return false;
   };
 
-  const handleDateSelect = (range: { from?: Date; to?: Date } | undefined) => {
+  const addLeaveEntry = () => {
+    const newEntry: LeaveEntry = {
+      id: `entry-${Date.now()}`,
+      dateRange: { from: undefined, to: undefined },
+      daySelections: {},
+      reason: ''
+    };
+
+    // Close all existing entries and open only the new one
+    setExpandedEntries(new Set([newEntry.id]));
+    setLeaveEntries(prev => [...prev, newEntry]);
+  };
+
+  const removeLeaveEntry = (entryId: string) => {
+    setLeaveEntries(prev => prev.filter(entry => entry.id !== entryId));
+    setExpandedEntries(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(entryId);
+      return newSet;
+    });
+  };
+
+  const toggleEntryExpansion = (entryId: string) => {
+    setExpandedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  const areAllEntriesValid = () => {
+    // First check if all entries have date ranges
+    if (!leaveEntries.every(entry => entry.dateRange.from && entry.dateRange.to)) {
+      return false;
+    }
+
+    // Then check for overlapping dates between entries
+    const allSelectedDates = new Map<string, number>(); // date -> entry index
+
+    for (let i = 0; i < leaveEntries.length; i++) {
+      const entry = leaveEntries[i];
+      if (entry.dateRange.from && entry.dateRange.to) {
+        const current = new Date(entry.dateRange.from);
+        while (current <= entry.dateRange.to!) {
+          const dateKey = format(current, 'yyyy-MM-dd');
+          if (allSelectedDates.has(dateKey)) {
+            return false; // Date already selected in another entry
+          }
+          allSelectedDates.set(dateKey, i);
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    }
+
+    return true;
+  };
+
+  const getPreviousEntriesDates = (currentEntryId: string) => {
+    const currentIndex = leaveEntries.findIndex(entry => entry.id === currentEntryId);
+    const previousEntries = leaveEntries.slice(0, currentIndex);
+
+    const selectedDates = new Set<string>();
+    previousEntries.forEach(entry => {
+      if (entry.dateRange.from && entry.dateRange.to) {
+        const current = new Date(entry.dateRange.from);
+        while (current <= entry.dateRange.to!) {
+          selectedDates.add(format(current, 'yyyy-MM-dd'));
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    });
+
+    return selectedDates;
+  };
+
+  const updateLeaveEntry = (entryId: string, updates: Partial<LeaveEntry>) => {
+    setLeaveEntries(prev => prev.map(entry =>
+      entry.id === entryId ? { ...entry, ...updates } : entry
+    ));
+  };
+
+  const handleDateSelect = (entryId: string, range: { from?: Date; to?: Date } | undefined) => {
     if (range) {
       const newRange: DateRange = { from: range.from, to: range.to };
-      setDateRange(newRange);
       // Initialize day selections for the selected date range
+      const selections: DaySelection = {};
       if (range.from && range.to) {
-        const selections: DaySelection = {};
         const current = new Date(range.from);
         while (current <= range.to) {
           const dateKey = format(current, 'yyyy-MM-dd');
           selections[dateKey] = 'leave'; // Default to leave
           current.setDate(current.getDate() + 1);
         }
-        setDaySelections(selections);
       }
+      updateLeaveEntry(entryId, { dateRange: newRange, daySelections: selections });
     }
   };
 
-  const handleDayTypeChange = useCallback((date: Date, type: LeaveDayType) => {
+  const handleDayTypeChange = useCallback((entryId: string, date: Date, type: LeaveDayType) => {
     const dateKey = format(date, 'yyyy-MM-dd');
-    setDaySelections(prev => ({
-      ...prev,
-      [dateKey]: type
-    }));
-  }, []);
+    updateLeaveEntry(entryId, {
+      daySelections: {
+        ...leaveEntries.find(entry => entry.id === entryId)?.daySelections,
+        [dateKey]: type
+      }
+    });
+  }, [leaveEntries]);
 
-  const getDayTypeBadge = (type: LeaveDayType, date: Date) => {
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
-    const isDisabled = isDateDisabled(date, existingLeaveRecords, holidays);
-    const holiday = isHoliday(date, holidays);
-    const optionalHoliday = isOptionalHoliday(date, holidays);
-
-    if (isDisabled && !holiday) {
-      return <Badge className="bg-red-100 text-red-800 border-red-200">Already Booked</Badge>;
-    }
-
-    if (holiday) {
-      return <Badge className="bg-red-100 text-red-800 border-red-200" title={holiday.name}>
-        Holiday
-      </Badge>;
-    }
-
-    if (optionalHoliday) {
-      return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200" title={optionalHoliday.name}>
-        Optional Holiday
-      </Badge>;
-    }
-
-    if (isWeekend) {
-      return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Weekend</Badge>;
-    }
-
-    if (type === 'leave') {
-      return <Badge className="bg-red-100 text-red-800 border-red-200">Leave</Badge>;
-    }
-    if (type === 'wfh') {
-      return <Badge className="bg-blue-100 text-blue-800 border-blue-200">WFH</Badge>;
-    }
-    return <Badge variant="outline">Leave</Badge>;
+  const handleReasonChange = (entryId: string, reason: string) => {
+    updateLeaveEntry(entryId, { reason });
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if a valid employee is selected
     const selectedEmp = getSelectedEmployee();
-    if (!selectedEmp || !selectedEmp.id || !dateRange.from || !dateRange.to) {
-      toast.error('Please select a valid employee and date range');
+    if (!selectedEmp || !selectedEmp.id) {
+      toast.error('Please select a valid employee');
       return;
     }
 
-    if (Object.keys(daySelections).length === 0) {
-      toast.error('Please select at least one day');
+    if (leaveEntries.length === 0) {
+      toast.error('Please add at least one leave entry');
       return;
+    }
+
+    // Validate each entry
+    for (let i = 0; i < leaveEntries.length; i++) {
+      const entry = leaveEntries[i];
+      if (!entry.dateRange.from || !entry.dateRange.to) {
+        toast.error(`Entry ${i + 1}: Please select a valid date range`);
+        return;
+      }
+      if (Object.keys(entry.daySelections).length === 0) {
+        toast.error(`Entry ${i + 1}: Please select at least one day`);
+        return;
+      }
+      if (hasConflictingDates(entry)) {
+        toast.error(`Entry ${i + 1}: Cannot create - conflicting dates`);
+        return;
+      }
     }
 
     try {
       setSubmitting(true);
 
-      // Build leave data conditionally to avoid undefined values
-      const baseLeaveData = {
-        employeeId: selectedEmp.employeeId,
-        startDate: format(dateRange.from, 'yyyy-MM-dd'),
-        endDate: format(dateRange.to, 'yyyy-MM-dd'),
-        days: daySelections,
-      };
+      // Submit all leave records
+      for (const entry of leaveEntries) {
+        const baseLeaveData = {
+          employeeId: selectedEmp.employeeId,
+          startDate: format(entry.dateRange.from!, 'yyyy-MM-dd'),
+          endDate: format(entry.dateRange.to!, 'yyyy-MM-dd'),
+          days: entry.daySelections,
+        };
 
-      // Only include reason if it has a value
-      const trimmedReason = reason.trim();
-      const leaveData: CreateLeaveRecordData = trimmedReason
-        ? { ...baseLeaveData, reason: trimmedReason }
-        : baseLeaveData;
+        // Only include reason if it has a value
+        const trimmedReason = entry.reason.trim();
+        const leaveData: CreateLeaveRecordData = trimmedReason
+          ? { ...baseLeaveData, reason: trimmedReason }
+          : baseLeaveData;
 
-      await createLeaveRecord(leaveData);
+        await createLeaveRecord(leaveData);
+      }
+
+      toast.success(`Successfully created ${leaveEntries.length} leave record${leaveEntries.length > 1 ? 's' : ''}`);
 
       // Reset form
       setSelectedEmployee('');
       setSearchQuery('');
-      setDateRange({ from: undefined, to: undefined });
-      setDaySelections({});
-      setReason('');
+      setLeaveEntries([]);
       setIsSearchOpen(false);
       setSelectedIndex(-1);
 
@@ -181,8 +262,8 @@ export const LeaveManagement: React.FC = () => {
         await fetchExistingLeaveRecords(selectedEmp.employeeId);
       }
     } catch (error) {
-      console.error('Error creating leave record:', error);
-      toast.error('Failed to create leave record. Please try again.');
+      console.error('Error creating leave records:', error);
+      toast.error('Failed to create leave records. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -250,6 +331,8 @@ export const LeaveManagement: React.FC = () => {
   const clearSelection = () => {
     setSelectedEmployee('');
     setSearchQuery('');
+    setLeaveEntries([]);
+    setExpandedEntries(new Set());
     setIsSearchOpen(false);
     setSelectedIndex(-1);
     setExistingLeaveRecords([]);
@@ -266,21 +349,21 @@ export const LeaveManagement: React.FC = () => {
         <p className="mt-2 text-gray-600">Manage employee leave requests and work-from-home schedules</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-6 flex-1 overflow-hidden">
         {/* Left Column - Create Leave Record and Summary */}
-        <div className="flex flex-col gap-6 overflow-auto">
+        <div className="flex flex-col gap-2 overflow-auto">
           {/* Leave Form */}
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Create Leave Record
+                Create Leave Records
               </CardTitle>
-                          <CardDescription>
-              Select dates and mark each day as leave or WFH
-            </CardDescription>
+              <CardDescription>
+                Select an employee and add multiple leave entries at once
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-4">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Employee Selection */}
                 <div className="space-y-2">
@@ -367,287 +450,404 @@ export const LeaveManagement: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Date Range Selection */}
-                <div className="space-y-2">
-                  <Label>Date Range</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
+                {/* Leave Entries */}
+                {selectedEmployee && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Leave Entries</Label>
                       <Button
+                        type="button"
                         variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dateRange.from && "text-muted-foreground"
-                        )}
+                        size="sm"
+                        onClick={addLeaveEntry}
+                        className="flex items-center gap-2"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
+                        <Plus className="h-4 w-4" />
+                        Add Entry
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange.from}
-                        selected={dateRange}
-                        onSelect={handleDateSelect}
-                        numberOfMonths={2}
-                        showOutsideDays={false}
-                        disabled={(date) => {
-                          return isDateDisabled(date, existingLeaveRecords, holidays) || isHoliday(date, holidays) !== null;
-                        }}
-                        modifiers={{
-                          booked: (date) => isDateDisabled(date, existingLeaveRecords, holidays),
-                          holiday: (date) => isHoliday(date, holidays) !== null,
-                          optionalHoliday: (date) => isOptionalHoliday(date, holidays) !== null,
-                        }}
-                        modifiersClassNames={{
-                          booked: "bg-red-100 text-red-800 font-semibold rounded-md",
-                          holiday: "bg-red-100 text-red-800 font-semibold rounded-md",
-                          optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold rounded-md",
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                    </div>
 
-                {/* Reason */}
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Reason (Optional)</Label>
-                  <Textarea
-                    id="reason"
-                    placeholder="Reason for leave or WFH"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    rows={3}
-                  />
-                </div>
+                    {leaveEntries.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                        <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No leave entries added yet</p>
+                        <p className="text-sm">Click "Add Entry" to create your first leave request</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {leaveEntries.map((entry, index) => {
+                          const isExpanded = expandedEntries.has(entry.id);
+                          const leaveDays = Object.entries(entry.daySelections).filter(([dateKey, type]) => {
+                            const date = new Date(dateKey);
+                            return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                          }).length;
+                          const wfhDays = Object.entries(entry.daySelections).filter(([dateKey, type]) => {
+                            const date = new Date(dateKey);
+                            return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                          }).length;
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={submitting || !selectedEmployee || !dateRange.from || !dateRange.to || hasConflictingDates()}
-                >
-                  {submitting ? 'Creating...' : hasConflictingDates() ? 'Cannot Create - Conflicting Dates' : 'Create Leave Record'}
-                </Button>
+                          return (
+                            <Card key={entry.id} className="gap-3">
+                              {/* Collapsed Header */}
+                              <CardHeader className='gap-0'>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleEntryExpansion(entry.id)}
+                                      className="p-1 hover:bg-gray-100"
+                                    >
+                                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </Button>
+                                    <CardTitle className="text-sm">Entry {index + 1}</CardTitle>
+                                    {entry.dateRange.from && entry.dateRange.to && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {format(entry.dateRange.from, 'MMM dd')} - {format(entry.dateRange.to, 'MMM dd')}
+                                      </Badge>
+                                    )}
+                                    <div className="flex gap-2">
+                                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                                        {leaveDays} Leave
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                        {wfhDays} WFH
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeLeaveEntry(entry.id)}
+                                    className="hover:bg-gray-100"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                {entry.reason && !isExpanded && (
+                                  <CardDescription className="ml-7 text-xs">
+                                    Reason: {entry.reason}
+                                  </CardDescription>
+                                )}
+                              </CardHeader>
+
+                              {/* Expanded Content */}
+                              {isExpanded && (
+                                <CardContent className="space-y-4">
+                                  {/* Date Range Selection */}
+                                  <div className="space-y-2">
+                                    <Label>Date Range</Label>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !entry.dateRange.from && "text-muted-foreground"
+                                          )}
+                                        >
+                                          <CalendarIcon className="mr-2 h-4 w-4" />
+                                          {entry.dateRange.from ? (
+                                            entry.dateRange.to ? (
+                                              <>
+                                                {format(entry.dateRange.from, "LLL dd, y")} -{" "}
+                                                {format(entry.dateRange.to, "LLL dd, y")}
+                                              </>
+                                            ) : (
+                                              format(entry.dateRange.from, "LLL dd, y")
+                                            )
+                                          ) : (
+                                            <span>Pick a date range</span>
+                                          )}
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                          initialFocus
+                                          mode="range"
+                                          defaultMonth={entry.dateRange.from}
+                                          selected={entry.dateRange}
+                                          onSelect={(range) => handleDateSelect(entry.id, range)}
+                                          numberOfMonths={2}
+                                          showOutsideDays={false}
+                                          disabled={(date) => {
+                                            const dateKey = format(date, 'yyyy-MM-dd');
+                                            const previousEntriesDates = getPreviousEntriesDates(entry.id);
+                                            return isDateDisabled(date, existingLeaveRecords, holidays) ||
+                                                   isHoliday(date, holidays) !== null ||
+                                                   previousEntriesDates.has(dateKey);
+                                          }}
+                                          modifiers={{
+                                            booked: (date) => isDateDisabled(date, existingLeaveRecords, holidays),
+                                            holiday: (date) => isHoliday(date, holidays) !== null,
+                                            optionalHoliday: (date) => isOptionalHoliday(date, holidays) !== null,
+                                            previousEntry: (date) => {
+                                              const dateKey = format(date, 'yyyy-MM-dd');
+                                              const previousEntriesDates = getPreviousEntriesDates(entry.id);
+                                              return previousEntriesDates.has(dateKey);
+                                            },
+                                          }}
+                                          modifiersClassNames={{
+                                            booked: "bg-red-100 text-red-800 font-semibold rounded-md",
+                                            holiday: "bg-red-100 text-red-800 font-semibold rounded-md",
+                                            optionalHoliday: "bg-yellow-100 text-yellow-800 font-semibold rounded-md",
+                                            previousEntry: "bg-orange-100 text-orange-800 font-semibold rounded-md",
+                                          }}
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                  </div>
+
+                                  {/* Reason */}
+                                  <div className="space-y-2">
+                                    <Label>Reason (Optional)</Label>
+                                    <Textarea
+                                      placeholder="Reason for leave or WFH"
+                                      value={entry.reason}
+                                      onChange={(e) => handleReasonChange(entry.id, e.target.value)}
+                                      rows={2}
+                                    />
+                                  </div>
+
+                                  {/* Day Selection Preview */}
+                                  {entry.dateRange.from && entry.dateRange.to && (
+                                    <div className="space-y-2">
+                                      <Label className="text-sm text-gray-600">Day Selection Preview</Label>
+                                      <div className="flex flex-col gap-2 max-h-52 overflow-y-auto border rounded-md p-4 bg-gray-50">
+                                        {(() => {
+                                          const days = [];
+                                          const current = new Date(entry.dateRange.from!);
+                                          while (current <= entry.dateRange.to!) {
+                                            const dateKey = format(current, 'yyyy-MM-dd');
+                                            const dayType = entry.daySelections[dateKey] || 'leave';
+                                            const currentDate = new Date(current);
+                                            const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                                            const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
+
+                                            if (!isWeekend && !isHoliday(currentDate, holidays) && !isDisabled) {
+                                              days.push(
+                                                <div key={dateKey} className="flex items-center justify-between py-3 px-3 bg-white rounded-lg border text-xs">
+                                                  <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                                  <div className="flex gap-2">
+                                                    <Button
+                                                      type="button"
+                                                      size="sm"
+                                                      variant={dayType === 'leave' ? 'default' : 'outline'}
+                                                      className={dayType === 'leave' ? 'bg-red-50 text-red-700 border-red-200 h-7 px-3 hover:bg-red-50 hover:border-red-200' : 'h-7 px-3 hover:bg-transparent hover:border-gray-300'}
+                                                      onClick={() => handleDayTypeChange(entry.id, currentDate, 'leave')}
+                                                    >
+                                                      Leave
+                                                    </Button>
+                                                    <Button
+                                                      type="button"
+                                                      size="sm"
+                                                      variant={dayType === 'wfh' ? 'default' : 'outline'}
+                                                      className={dayType === 'wfh' ? 'bg-blue-50 text-blue-700 border-blue-200 h-7 px-3 hover:bg-blue-50 hover:border-blue-200' : 'h-7 px-3 hover:bg-transparent hover:border-gray-300'}
+                                                      onClick={() => handleDayTypeChange(entry.id, currentDate, 'wfh')}
+                                                    >
+                                                      WFH
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            }
+                                            current.setDate(current.getDate() + 1);
+                                          }
+                                          return days.length > 0 ? days : <p className="text-xs text-gray-500 text-center py-2">No working days in selected range</p>;
+                                        })()}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              )}
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </form>
             </CardContent>
           </Card>
 
-          {/* Summary */}
-          {selectedEmployee && dateRange.from && dateRange.to && (
-            <Card className="h-fit">
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Employee Info */}
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                    <span className="text-gray-700 font-semibold text-xs">
-                      {getSelectedEmployee()?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {getSelectedEmployee()?.name}
-                    </p>
-                    <p className="text-xs text-gray-500">Employee</p>
-                  </div>
-                </div>
-
-                {/* Date Range & Day Breakdown */}
-                <div className="space-y-4">
-                  {/* Date Range */}
-                  <div className="p-3 border rounded-lg">
-                    <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date Range</Label>
-                    <p className="text-sm font-medium text-gray-900 mt-1">
-                      {format(dateRange.from, 'MMM dd, yyyy')} to {format(dateRange.to, 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-
-                  {/* Day Type Breakdown */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {/* Holidays */}
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <Label className="text-xs font-medium text-red-700 uppercase tracking-wide">Holidays</Label>
-                      <p className="text-lg font-semibold text-red-800 mt-1">
-                        {(() => {
-                          let holidayCount = 0;
-                          const current = new Date(dateRange.from!);
-                          while (current <= dateRange.to!) {
-                            if (isHoliday(current, holidays)) {
-                              holidayCount++;
-                            }
-                            current.setDate(current.getDate() + 1);
-                          }
-                          return holidayCount;
-                        })()}
-                      </p>
-                      <p className="text-xs text-red-600">holidays</p>
-                    </div>
-
-                    {/* Weekends */}
-                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                      <Label className="text-xs font-medium text-orange-700 uppercase tracking-wide">Weekends</Label>
-                      <p className="text-lg font-semibold text-orange-800 mt-1">
-                        {(() => {
-                          let weekendCount = 0;
-                          const current = new Date(dateRange.from!);
-                          while (current <= dateRange.to!) {
-                            if (current.getDay() === 0 || current.getDay() === 6) {
-                              weekendCount++;
-                            }
-                            current.setDate(current.getDate() + 1);
-                          }
-                          return weekendCount;
-                        })()}
-                      </p>
-                      <p className="text-xs text-orange-600">Sat/Sun</p>
-                    </div>
-
-                    {/* Working Days */}
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                      <Label className="text-xs font-medium text-gray-700 uppercase tracking-wide">Working Days</Label>
-                      <p className="text-lg font-semibold text-gray-800 mt-1">
-                        {(() => {
-                          let workingDays = 0;
-                          const current = new Date(dateRange.from!);
-                          while (current <= dateRange.to!) {
-                            if (current.getDay() !== 0 && current.getDay() !== 6 && !isHoliday(current, holidays)) {
-                              workingDays++;
-                            }
-                            current.setDate(current.getDate() + 1);
-                          }
-                          return workingDays;
-                        })()}
-                      </p>
-                      <p className="text-xs text-gray-600">Mon-Fri</p>
-                    </div>
-
-                    {/* Leave Days */}
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <Label className="text-xs font-medium text-red-700 uppercase tracking-wide">Leave Days</Label>
-                      <p className="text-lg font-semibold text-red-800 mt-1">
-                        {Object.entries(daySelections).filter(([dateKey, type]) => {
-                          const date = new Date(dateKey);
-                          return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
-                        }).length}
-                      </p>
-                      <p className="text-xs text-red-600">working days</p>
-                    </div>
-
-                    {/* WFH Days */}
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <Label className="text-xs font-medium text-blue-700 uppercase tracking-wide">WFH Days</Label>
-                      <p className="text-lg font-semibold text-blue-800 mt-1">
-                        {Object.entries(daySelections).filter(([dateKey, type]) => {
-                          const date = new Date(dateKey);
-                          return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
-                        }).length}
-                      </p>
-                      <p className="text-xs text-blue-600">working days</p>
-                    </div>
-                  </div>
-                </div>
-
-
-              </CardContent>
-            </Card>
+          {/* Sticky Submit Button */}
+          {selectedEmployee && leaveEntries.length > 0 && (
+            <div className="sticky bottom-0 bg-white p-2 rounded-lg">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitting || !areAllEntriesValid()}
+                onClick={(e) => {
+                  // Find the form and submit it
+                  const form = e.currentTarget.closest('.flex-col')?.querySelector('form');
+                  if (form) form.requestSubmit();
+                }}
+              >
+                {submitting
+                  ? 'Creating...'
+                  : !leaveEntries.every(entry => entry.dateRange.from && entry.dateRange.to)
+                    ? 'Please select date ranges for all entries'
+                    : !areAllEntriesValid()
+                      ? 'Date ranges overlap - please fix conflicts'
+                      : `Create ${leaveEntries.length} Leave Record${leaveEntries.length > 1 ? 's' : ''}`
+                }
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* Right Column - Day Selection Calendar */}
+        {/* Right Column - Leave Entries Overview */}
         <Card className="overflow-hidden flex flex-col">
           <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Day Selection
+              Leave Entries Overview
             </CardTitle>
             <CardDescription>
-              {dateRange.from && dateRange.to ? (
-                `Select leave type for each day from ${format(dateRange.from, 'MMM dd')} to ${format(dateRange.to, 'MMM dd')}`
-              ) : (
-                'Select a date range first'
-              )}
+              {leaveEntries.length > 0
+                ? `Overview of ${leaveEntries.length} leave entr${leaveEntries.length > 1 ? 'ies' : 'y'}`
+                : 'Add leave entries to see overview'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto">
-            {dateRange.from && dateRange.to && (
-              <div className="grid grid-cols-1 gap-4">
-                {(() => {
-                  const days = [];
-                  const current = new Date(dateRange.from!);
-                  while (current <= dateRange.to!) {
-                    const dateKey = format(current, 'yyyy-MM-dd');
-                    const dayType = daySelections[dateKey] || 'leave';
-                    const currentDate = new Date(current); // Create a copy of the current date
-                    const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6; // 0 = Sunday, 6 = Saturday
-                    const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
-
-                    days.push(
-                      <div key={dateKey} className={`flex items-center justify-between p-3 border rounded-lg ${
-                        isWeekend ? 'bg-orange-50 border-orange-200' : ''
-                      } ${
-                        isDisabled ? 'bg-red-50 border-red-200' : ''
-                      } ${
-                        isHoliday(currentDate, holidays) ? 'bg-red-50 border-red-200' : ''
-                      } ${
-                        isOptionalHoliday(currentDate, holidays) ? 'bg-yellow-50 border-yellow-200' : ''
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <span className={`font-medium ${
-                            isWeekend ? 'text-orange-800' :
-                            isHoliday(currentDate, holidays) ? 'text-red-800' :
-                            isOptionalHoliday(currentDate, holidays) ? 'text-yellow-800' : ''
-                          }`}>
-                            {format(current, 'EEE, MMM dd')}
-                          </span>
-                          {getDayTypeBadge(dayType, currentDate)}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={dayType === 'leave' ? 'default' : 'outline'}
-                            className={dayType === 'leave' ? `bg-red-50 text-red-700 border-red-200 ${isDisabled ? '' : 'hover:bg-red-100'}` : ''}
-                            onClick={() => handleDayTypeChange(currentDate, 'leave')}
-                            disabled={isWeekend || isDisabled}
-                          >
-                            Leave
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={dayType === 'wfh' ? 'default' : 'outline'}
-                            className={dayType === 'wfh' ? `bg-blue-50 text-blue-700 border-blue-200 ${isDisabled ? '' : 'hover:bg-blue-100'}` : ''}
-                            onClick={() => handleDayTypeChange(currentDate, 'wfh')}
-                            disabled={isWeekend || isDisabled}
-                          >
-                            WFH
-                          </Button>
-                        </div>
+            {leaveEntries.length > 0 ? (
+              <div className="space-y-4">
+                {leaveEntries.map((entry, index) => (
+                  <Card key={entry.id} className="border-l-4 border-l-blue-500">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm">Entry {index + 1}</CardTitle>
+                        <Badge variant="outline" className="text-xs">
+                          {entry.dateRange.from && entry.dateRange.to
+                            ? `${format(entry.dateRange.from, 'MMM dd')} - ${format(entry.dateRange.to, 'MMM dd')}`
+                            : 'No dates'
+                          }
+                        </Badge>
                       </div>
-                    );
-                    current.setDate(current.getDate() + 1);
-                  }
-                  return days;
-                })()}
-              </div>
-            )}
+                      {entry.reason && (
+                        <CardDescription className="text-xs">
+                          Reason: {entry.reason}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {entry.dateRange.from && entry.dateRange.to ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div className="p-2 bg-gray-50 rounded text-center">
+                              <p className="font-medium text-gray-700">
+                                {Object.entries(entry.daySelections).filter(([dateKey, type]) => {
+                                  const date = new Date(dateKey);
+                                  return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                                }).length}
+                              </p>
+                              <p className="text-gray-500">Leave Days</p>
+                            </div>
+                            <div className="p-2 bg-blue-50 rounded text-center">
+                              <p className="font-medium text-blue-700">
+                                {Object.entries(entry.daySelections).filter(([dateKey, type]) => {
+                                  const date = new Date(dateKey);
+                                  return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                                }).length}
+                              </p>
+                              <p className="text-blue-500">WFH Days</p>
+                            </div>
+                            <div className="p-2 bg-orange-50 rounded text-center">
+                              <p className="font-medium text-orange-700">
+                                {(() => {
+                                  let holidayCount = 0;
+                                  const current = new Date(entry.dateRange.from);
+                                  while (current <= entry.dateRange.to) {
+                                    if (isHoliday(current, holidays)) {
+                                      holidayCount++;
+                                    }
+                                    current.setDate(current.getDate() + 1);
+                                  }
+                                  return holidayCount;
+                                })()}
+                              </p>
+                              <p className="text-orange-500">Holidays</p>
+                            </div>
+                          </div>
 
-            {(!dateRange.from || !dateRange.to) && (
-              <div className="text-center py-8 text-gray-500">
+                          {/* Day breakdown */}
+                          <div className="space-y-1 max-h-60 overflow-y-auto">
+                            <Label className="text-xs text-gray-600 font-medium">All Days:</Label>
+                            {(() => {
+                              const allDays = [];
+                              const current = new Date(entry.dateRange.from);
+                              while (current <= entry.dateRange.to) {
+                                const dateKey = format(current, 'yyyy-MM-dd');
+                                const dayType = entry.daySelections[dateKey] || 'leave';
+                                const currentDate = new Date(current);
+                                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                                const holiday = isHoliday(currentDate, holidays);
+                                const optionalHoliday = isOptionalHoliday(currentDate, holidays);
+                                const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
+
+                                // Skip weekends
+                                if (isWeekend) {
+                                  current.setDate(current.getDate() + 1);
+                                  continue;
+                                }
+
+                                let badgeContent = '';
+                                let badgeClass = '';
+
+                                if (holiday || optionalHoliday) {
+                                  // Holiday day
+                                  badgeContent = optionalHoliday ? 'Optional Holiday' : 'Holiday';
+                                  badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
+                                } else if (!isDisabled) {
+                                  // Working day
+                                  badgeContent = dayType === 'leave' ? 'Leave' : 'WFH';
+                                  badgeClass = dayType === 'leave'
+                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                    : 'bg-blue-50 text-blue-700 border-blue-200';
+                                } else {
+                                  // Disabled working day
+                                  badgeContent = 'Booked';
+                                  badgeClass = 'bg-gray-50 text-gray-700 border-gray-200';
+                                }
+
+                                allDays.push(
+                                  <div key={dateKey} className="flex items-center justify-between py-2 px-2 bg-gray-50 rounded text-xs">
+                                    <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${badgeClass}`}
+                                      title={holiday ? holiday.name : optionalHoliday ? optionalHoliday.name : ''}
+                                    >
+                                      {badgeContent}
+                                    </Badge>
+                                  </div>
+                                );
+
+                                current.setDate(current.getDate() + 1);
+                              }
+                              return allDays.length > 0 ? allDays : <p className="text-xs text-gray-500 text-center py-2">No days in range</p>;
+                            })()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500 text-sm">
+                          No date range selected
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a date range to configure leave days</p>
+                <p className="mb-2">No leave entries yet</p>
+                <p className="text-sm">Add entries in the form to see the overview</p>
               </div>
             )}
           </CardContent>

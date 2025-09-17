@@ -64,7 +64,6 @@ export const EmployeeDetail: React.FC = () => {
   const handleDeleteRecord = async (recordId: string) => {
     try {
       await deleteLeaveRecord(recordId);
-      toast.success('Leave record deleted successfully');
     } catch (error) {
       console.error('Error deleting leave record:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete leave record');
