@@ -244,7 +244,10 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                       <TableRow key={record.id}>
                         <TableCell>
                           <div className="text-sm font-medium">
-                            {format(new Date(actualStartDate), 'MMM d, yyyy')} - {format(new Date(actualEndDate), 'MMM d, yyyy')}
+                            {actualStartDate === actualEndDate
+                              ? format(new Date(actualStartDate), 'MMM d, yyyy')
+                              : `${format(new Date(actualStartDate), 'MMM d, yyyy')} - ${format(new Date(actualEndDate), 'MMM d, yyyy')}`
+                            }
                           </div>
                         </TableCell>
                         <TableCell>
