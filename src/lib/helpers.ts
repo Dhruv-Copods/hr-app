@@ -145,6 +145,15 @@ export function removeUndefinedValues<T extends Record<string, unknown>>(obj: T)
 }
 
 /**
+ * Normalizes a Date object to the start of the day (00:00:00.000) for accurate date comparisons
+ * @param date - The date to normalize
+ * @returns A new Date object set to the start of the day
+ */
+export function normalizeDateToStartOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
  * Checks if a date is a holiday
  * @param date - The date to check
  * @param holidays - Array of holidays to check against
@@ -181,8 +190,13 @@ export function isDateDisabled(date: Date, existingLeaveRecords: LeaveRecord[], 
     const recordStart = new Date(record.startDate);
     const recordEnd = new Date(record.endDate);
 
+    // Normalize all dates to start of day for accurate comparison
+    const normalizedDate = normalizeDateToStartOfDay(date);
+    const normalizedRecordStart = normalizeDateToStartOfDay(recordStart);
+    const normalizedRecordEnd = normalizeDateToStartOfDay(recordEnd);
+
     // If date is within the record's date range
-    if (date >= recordStart && date <= recordEnd) {
+    if (normalizedDate >= normalizedRecordStart && normalizedDate <= normalizedRecordEnd) {
       // Check if this specific date has leave or wfh
       const dayType = record.days[dateKey];
       if (dayType === 'leave' || dayType === 'wfh') {

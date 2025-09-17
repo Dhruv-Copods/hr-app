@@ -9,6 +9,7 @@ import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, parseISO } fr
 import { cn } from '@/lib/utils';
 import { getAllEmployees } from '@/lib/employeeService';
 import { getAllLeaveRecords } from '@/lib/leaveService';
+import { normalizeDateToStartOfDay } from '@/lib/helpers';
 import type { Employee, LeaveRecord } from '@/lib/types';
 
 type ReportFilterType = 'currentFiscalYear' | 'normalYear' | 'specificMonth' | 'monthRange';
@@ -112,7 +113,12 @@ export const Reports: React.FC = () => {
         if (recordStart <= reportDateRange.end && recordEnd >= reportDateRange.start) {
           Object.entries(record.days).forEach(([dateStr, dayType]) => {
             const date = parseISO(dateStr);
-            if (date >= reportDateRange.start && date <= reportDateRange.end) {
+            // Normalize dates to start of day for accurate comparison
+            const normalizedDate = normalizeDateToStartOfDay(date);
+            const normalizedRangeStart = normalizeDateToStartOfDay(reportDateRange.start);
+            const normalizedRangeEnd = normalizeDateToStartOfDay(reportDateRange.end);
+
+            if (normalizedDate >= normalizedRangeStart && normalizedDate <= normalizedRangeEnd) {
               if (dayType === 'leave') {
                 leaveDays++;
               } else if (dayType === 'wfh') {

@@ -5,6 +5,7 @@ import { UpcomingHolidays } from '@/components/UpcomingHolidays';
 import { useEmployee } from '@/hooks/EmployeeContext';
 import { useLeave } from '@/hooks/LeaveContext';
 import { useSettings } from '@/hooks/SettingsContext';
+import { normalizeDateToStartOfDay } from '@/lib/helpers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import type { Employee, LeaveRecord, LeaveDayType } from '@/lib/types';
@@ -62,7 +63,12 @@ export const Dashboard: React.FC = () => {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(todayDate.getDate() + 30);
 
-    return holidayDate >= todayDate && holidayDate <= thirtyDaysFromNow;
+    // Normalize dates to start of day for accurate comparison
+    const normalizedHolidayDate = normalizeDateToStartOfDay(holidayDate);
+    const normalizedTodayDate = normalizeDateToStartOfDay(todayDate);
+    const normalizedThirtyDaysFromNow = normalizeDateToStartOfDay(thirtyDaysFromNow);
+
+    return normalizedHolidayDate >= normalizedTodayDate && normalizedHolidayDate <= normalizedThirtyDaysFromNow;
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
 
   const totalEmployees = employees.length;
