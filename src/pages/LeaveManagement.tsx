@@ -136,6 +136,22 @@ export const LeaveManagement: React.FC = () => {
       }
     }
 
+    // Finally check for overlaps with existing leave records
+    const selectedEmployeeData = getSelectedEmployee();
+    if (selectedEmployeeData && existingLeaveRecords.length > 0) {
+      for (const entry of leaveEntries) {
+        if (entry.dateRange.from && entry.dateRange.to) {
+          const current = new Date(entry.dateRange.from);
+          while (current <= entry.dateRange.to!) {
+            if (isDateDisabled(current, existingLeaveRecords, holidays)) {
+              return false; // Date conflicts with existing leave record
+            }
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      }
+    }
+
     return true;
   };
 
@@ -692,7 +708,7 @@ export const LeaveManagement: React.FC = () => {
                   : !leaveEntries.every(entry => entry.dateRange.from && entry.dateRange.to)
                     ? 'Please select date ranges for all entries'
                     : !areAllEntriesValid()
-                      ? 'Date ranges overlap - please fix conflicts'
+                      ? 'Date conflicts detected - please check for overlaps'
                       : `Create ${leaveEntries.length} Leave Record${leaveEntries.length > 1 ? 's' : ''}`
                 }
               </Button>
