@@ -645,11 +645,6 @@ export const Attendance: React.FC = () => {
                                   )}>
                                     {data.monthlyRemainingWFH !== undefined ? data.monthlyRemainingWFH : data.remainingWFH}
                                   </div>
-                                  {data.monthlyRemainingWFH !== undefined && data.isOverboardMonthlyWFH && (
-                                    <div className="text-xs text-red-500 font-medium">
-                                      Monthly limit exceeded
-                                    </div>
-                                  )}
                                 </div>
                               </TableCell>
                             </>
