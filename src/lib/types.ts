@@ -69,7 +69,6 @@ export interface LeaveRecord {
   days: {
     [date: string]: LeaveDayType; // Date in YYYY-MM-DD format
   };
-  optionalLeavesTaken?: number; // Number of optional holidays taken in this leave period
   reason?: string;
   approved?: boolean; // Optional since we're not using approval workflow
   approvedBy?: string;

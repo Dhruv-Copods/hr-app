@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import type { Holiday, LeaveDayType, LeaveRecord } from './types';
+import type { Holiday, LeaveRecord } from './types';
 
 /**
  * Centralized utility functions for the HR application
@@ -173,38 +173,6 @@ export function isHoliday(date: Date, holidays: Holiday[]): Holiday | null {
 export function isOptionalHoliday(date: Date, holidays: Holiday[]): Holiday | null {
   const dateKey = format(date, 'yyyy-MM-dd');
   return holidays.find(holiday => holiday.date === dateKey && holiday.type === 'optional') || null;
-}
-
-/**
- * Counts the number of optional holidays within a date range that are being taken as leave
- * @param startDate - Start date of the leave period
- * @param endDate - End date of the leave period
- * @param days - Object containing day types for each date
- * @param holidays - Array of holidays to check against
- * @returns Number of optional holidays taken as leave
- */
-export function countOptionalLeavesTaken(
-  startDate: Date,
-  endDate: Date,
-  days: { [date: string]: LeaveDayType },
-  holidays: Holiday[]
-): number {
-  let count = 0;
-  const current = new Date(startDate);
-
-  while (current <= endDate) {
-    const dateKey = format(current, 'yyyy-MM-dd');
-    const dayType = days[dateKey];
-
-    // Only count if it's an optional holiday and the employee is taking leave (not WFH) on that day
-    if (dayType === 'leave' && isOptionalHoliday(current, holidays)) {
-      count++;
-    }
-
-    current.setDate(current.getDate() + 1);
-  }
-
-  return count;
 }
 
 /**
