@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Employee, LeaveDayType, CreateLeaveRecordData, LeaveRecord } from '@/lib/types';
-import { isHoliday, isOptionalHoliday, isDateDisabled } from '@/lib/helpers';
+import { isHoliday, isOptionalHoliday, isDateDisabled, countOptionalLeavesTaken } from '@/lib/helpers';
 import { useEmployee } from '@/hooks/EmployeeContext';
 import { useLeave } from '@/hooks/LeaveContext';
 
@@ -248,11 +248,23 @@ export const LeaveManagement: React.FC = () => {
 
       // Submit all leave records
       for (const entry of leaveEntries) {
+        const startDate = entry.dateRange.from!;
+        const endDate = entry.dateRange.to!;
+
+        // Calculate optional leaves taken for this leave period
+        const optionalLeavesTaken = countOptionalLeavesTaken(
+          startDate,
+          endDate,
+          entry.daySelections,
+          holidays
+        );
+
         const baseLeaveData = {
           employeeId: selectedEmp.employeeId,
-          startDate: format(entry.dateRange.from!, 'yyyy-MM-dd'),
-          endDate: format(entry.dateRange.to!, 'yyyy-MM-dd'),
+          startDate: format(startDate, 'yyyy-MM-dd'),
+          endDate: format(endDate, 'yyyy-MM-dd'),
           days: entry.daySelections,
+          optionalLeavesTaken: optionalLeavesTaken,
         };
 
         // Only include reason if it has a value
@@ -365,7 +377,7 @@ export const LeaveManagement: React.FC = () => {
         <p className="mt-2 text-gray-600">Manage employee leave requests and work-from-home schedules</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-6 flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6 flex-1 overflow-hidden">
         {/* Left Column - Create Leave Record and Summary */}
         <div className="flex flex-col gap-2 overflow-auto">
           {/* Leave Form */}
@@ -495,11 +507,11 @@ export const LeaveManagement: React.FC = () => {
                           const isExpanded = expandedEntries.has(entry.id);
                           const leaveDays = Object.entries(entry.daySelections).filter(([dateKey, type]) => {
                             const date = new Date(dateKey);
-                            return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                            return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays) && !isOptionalHoliday(date, holidays);
                           }).length;
                           const wfhDays = Object.entries(entry.daySelections).filter(([dateKey, type]) => {
                             const date = new Date(dateKey);
-                            return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                            return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays) && !isOptionalHoliday(date, holidays);
                           }).length;
 
                           return (
@@ -641,11 +653,22 @@ export const LeaveManagement: React.FC = () => {
                                             const currentDate = new Date(current);
                                             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                                             const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
+                                            const optionalHoliday = isOptionalHoliday(currentDate, holidays);
 
                                             if (!isWeekend && !isHoliday(currentDate, holidays) && !isDisabled) {
                                               days.push(
-                                                <div key={dateKey} className="flex items-center justify-between py-3 px-3 bg-white rounded-lg border text-xs">
-                                                  <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                                <div key={dateKey} className={cn(
+                                                  "flex items-center justify-between py-3 px-3 rounded-lg border text-xs",
+                                                  optionalHoliday ? "bg-yellow-50 border-yellow-200" : "bg-white"
+                                                )}>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                                    {optionalHoliday && (
+                                                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                                                        Optional Holiday
+                                                      </Badge>
+                                                    )}
+                                                  </div>
                                                   <div className="flex gap-2">
                                                     <Button
                                                       type="button"
@@ -754,12 +777,12 @@ export const LeaveManagement: React.FC = () => {
                     <CardContent className="pt-0">
                       {entry.dateRange.from && entry.dateRange.to ? (
                         <div className="space-y-2">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div className="grid grid-cols-4 gap-2 text-xs">
                             <div className="p-2 bg-gray-50 rounded text-center">
                               <p className="font-medium text-gray-700">
                                 {Object.entries(entry.daySelections).filter(([dateKey, type]) => {
                                   const date = new Date(dateKey);
-                                  return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                                  return type === 'leave' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays) && !isOptionalHoliday(date, holidays);
                                 }).length}
                               </p>
                               <p className="text-gray-500">Leave Days</p>
@@ -768,10 +791,26 @@ export const LeaveManagement: React.FC = () => {
                               <p className="font-medium text-blue-700">
                                 {Object.entries(entry.daySelections).filter(([dateKey, type]) => {
                                   const date = new Date(dateKey);
-                                  return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays);
+                                  return type === 'wfh' && date.getDay() !== 0 && date.getDay() !== 6 && !isHoliday(date, holidays) && !isOptionalHoliday(date, holidays);
                                 }).length}
                               </p>
                               <p className="text-blue-500">WFH Days</p>
+                            </div>
+                            <div className="p-2 bg-yellow-50 rounded text-center">
+                              <p className="font-medium text-yellow-700">
+                                {(() => {
+                                  let optionalHolidayCount = 0;
+                                  const current = new Date(entry.dateRange.from);
+                                  while (current <= entry.dateRange.to) {
+                                    if (isOptionalHoliday(current, holidays)) {
+                                      optionalHolidayCount++;
+                                    }
+                                    current.setDate(current.getDate() + 1);
+                                  }
+                                  return optionalHolidayCount;
+                                })()}
+                              </p>
+                              <p className="text-yellow-500">Op. Holidays</p>
                             </div>
                             <div className="p-2 bg-orange-50 rounded text-center">
                               <p className="font-medium text-orange-700">
