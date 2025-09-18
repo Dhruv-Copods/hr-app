@@ -20,12 +20,13 @@ export async function getSettings(): Promise<CompanySettings | null> {
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Ensure backward compatibility by adding holidays if missing
+      // Ensure backward compatibility by adding holidays and optional holidays if missing
       const settings: CompanySettings = {
         ptoYearly: data.ptoYearly || 20,
         ptoMonthly: data.ptoMonthly || 2,
         wfhYearly: data.wfhYearly || 12,
         wfhMonthly: data.wfhMonthly || 1,
+        optionalHolidaysYearly: data.optionalHolidaysYearly || 5,
         holidays: data.holidays || [],
         updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
         updatedBy: data.updatedBy,
@@ -52,6 +53,7 @@ export async function updateSettings(settings: Partial<CompanySettings>, updated
       ptoMonthly: settings.ptoMonthly ?? currentSettings?.ptoMonthly ?? 2,
       wfhYearly: settings.wfhYearly ?? currentSettings?.wfhYearly ?? 12,
       wfhMonthly: settings.wfhMonthly ?? currentSettings?.wfhMonthly ?? 1,
+      optionalHolidaysYearly: settings.optionalHolidaysYearly ?? currentSettings?.optionalHolidaysYearly ?? 5,
       holidays: settings.holidays ?? currentSettings?.holidays ?? [],
       updatedAt: now.toDate().toISOString(),
       ...(updatedBy && { updatedBy }),
@@ -78,6 +80,7 @@ export async function createDefaultSettings(updatedBy?: string): Promise<Company
       ptoMonthly: 2,
       wfhYearly: 12,
       wfhMonthly: 1,
+      optionalHolidaysYearly: 5,
       holidays: [],
       updatedAt: now.toDate().toISOString(),
       ...(updatedBy && { updatedBy }),

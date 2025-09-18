@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Clock, Save } from 'lucide-react';
+import { Clock, Save, Calendar } from 'lucide-react';
 import { useSettings } from '@/hooks/SettingsContext';
 import { toast } from 'sonner';
 
@@ -16,6 +16,7 @@ export const LeavePoliciesTab: React.FC = () => {
     ptoMonthly: 2,
     wfhYearly: 12,
     wfhMonthly: 1,
+    optionalHolidaysYearly: 5,
   });
   const [isLeaveSaving, setIsLeaveSaving] = useState(false);
 
@@ -27,6 +28,7 @@ export const LeavePoliciesTab: React.FC = () => {
         ptoMonthly: settings.ptoMonthly,
         wfhYearly: settings.wfhYearly,
         wfhMonthly: settings.wfhMonthly,
+        optionalHolidaysYearly: settings.optionalHolidaysYearly,
       });
     }
   }, [settings]);
@@ -137,6 +139,28 @@ export const LeavePoliciesTab: React.FC = () => {
                   placeholder="Enter maximum WFH days per month"
                 />
                 <p className="text-sm text-gray-500">Maximum WFH days an employee can take in a single month</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Holidays Settings */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Optional Holidays
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="optional-holidays-yearly">Maximum Optional Holidays per Year</Label>
+                <Input
+                  id="optional-holidays-yearly"
+                  type="number"
+                  min="0"
+                  value={leaveSettings.optionalHolidaysYearly}
+                  onChange={(e) => handleLeaveSettingChange('optionalHolidaysYearly', e.target.value)}
+                  placeholder="Enter maximum optional holidays per year"
+                />
+                <p className="text-sm text-gray-500">Total optional holidays an employee can take in a calendar year</p>
               </div>
             </div>
           </div>

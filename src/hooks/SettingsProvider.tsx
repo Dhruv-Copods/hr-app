@@ -29,7 +29,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }
   }, []);
 
-  const updateLeaveSettings = useCallback(async (leaveSettings: Partial<Pick<CompanySettings, 'ptoYearly' | 'ptoMonthly' | 'wfhYearly' | 'wfhMonthly'>>) => {
+  const updateLeaveSettings = useCallback(async (leaveSettings: Partial<Pick<CompanySettings, 'ptoYearly' | 'ptoMonthly' | 'wfhYearly' | 'wfhMonthly' | 'optionalHolidaysYearly'>>) => {
     if (!settings) return;
 
     try {

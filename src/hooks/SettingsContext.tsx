@@ -6,7 +6,7 @@ export interface SettingsContextType {
   loading: boolean;
   error: string | null;
   fetchSettings: () => Promise<void>;
-  updateLeaveSettings: (settings: Partial<Pick<CompanySettings, 'ptoYearly' | 'ptoMonthly' | 'wfhYearly' | 'wfhMonthly'>>) => Promise<void>;
+  updateLeaveSettings: (settings: Partial<Pick<CompanySettings, 'ptoYearly' | 'ptoMonthly' | 'wfhYearly' | 'wfhMonthly' | 'optionalHolidaysYearly'>>) => Promise<void>;
   addHoliday: (holidayData: CreateHolidayData) => Promise<void>;
   updateHoliday: (holidayId: string, holidayData: CreateHolidayData) => Promise<void>;
   removeHoliday: (holidayId: string) => Promise<void>;

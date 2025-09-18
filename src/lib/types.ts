@@ -100,6 +100,7 @@ export interface CompanySettings {
   ptoMonthly: number;
   wfhYearly: number;
   wfhMonthly: number;
+  optionalHolidaysYearly: number;
   holidays: Holiday[];
   updatedAt?: string;
   updatedBy?: string;
