@@ -201,7 +201,18 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leaveRecords.map((record) => {
+                  {leaveRecords
+                    .sort((a, b) => {
+                      // Calculate actual start dates for comparison
+                      const aLeaveDates = Object.keys(a.days).sort();
+                      const aActualStartDate = aLeaveDates.length > 0 ? aLeaveDates[0] : a.startDate;
+                      const bLeaveDates = Object.keys(b.days).sort();
+                      const bActualStartDate = bLeaveDates.length > 0 ? bLeaveDates[0] : b.startDate;
+
+                      // Sort by date descending (latest first)
+                      return new Date(bActualStartDate).getTime() - new Date(aActualStartDate).getTime();
+                    })
+                    .map((record) => {
                     // Calculate actual period from leave days
                     const leaveDates = Object.keys(record.days).sort();
                     const actualStartDate = leaveDates.length > 0 ? leaveDates[0] : record.startDate;
