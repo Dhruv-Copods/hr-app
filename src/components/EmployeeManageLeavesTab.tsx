@@ -133,9 +133,10 @@ export const EmployeeManageLeavesTab: React.FC<EmployeeManageLeavesTabProps> = (
         const date = new Date(dateString);
         const dayOfWeek = date.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+        const isHolidayDate = isHoliday(date);
 
-        // Only count non-weekend days
-        if (!isWeekend) {
+        // Only count non-weekend and non-holiday days
+        if (!isWeekend && !isHolidayDate) {
           if (dayType === 'leave') totalLeaveDays++;
           if (dayType === 'wfh') totalWfhDays++;
         }

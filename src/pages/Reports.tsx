@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,8 +9,9 @@ import { format, startOfYear, endOfYear, startOfMonth, endOfMonth, parseISO } fr
 import { cn } from '@/lib/utils';
 import { getAllEmployees } from '@/lib/employeeService';
 import { getAllLeaveRecords } from '@/lib/leaveService';
-import { normalizeDateToStartOfDay } from '@/lib/helpers';
-import type { Employee, LeaveRecord } from '@/lib/types';
+import { getSettings } from '@/lib/settingsService';
+import { normalizeDateToStartOfDay, isHoliday } from '@/lib/helpers';
+import type { Employee, LeaveRecord, CompanySettings } from '@/lib/types';
 
 type ReportFilterType = 'currentFiscalYear' | 'normalYear' | 'specificMonth' | 'monthRange';
 
@@ -24,6 +25,7 @@ interface ReportData {
   employeeId: string;
   leaveDays: number;
   wfhDays: number;
+  remark: string;
 }
 
 export const Reports: React.FC = () => {
@@ -33,18 +35,21 @@ export const Reports: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
+  const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
 
-  // Load employees and leave records
+  // Load employees, leave records, and settings
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [employeesData, leaveRecordsData] = await Promise.all([
+        const [employeesData, leaveRecordsData, settingsData] = await Promise.all([
           getAllEmployees(),
-          getAllLeaveRecords()
+          getAllLeaveRecords(),
+          getSettings()
         ]);
         setEmployees(employeesData);
         setLeaveRecords(leaveRecordsData);
+        setSettings(settingsData);
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -91,6 +96,58 @@ export const Reports: React.FC = () => {
     }
   }, [filterType, selectedYear, selectedMonth, dateRange]);
 
+  // Helper function to check if a date should be counted as leave
+  const shouldCountAsLeave = useCallback((date: Date): boolean => {
+    // Check if it's a weekend (Saturday = 6, Sunday = 0)
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return false;
+    }
+
+    // Check if it's a holiday
+    if (settings?.holidays && isHoliday(date, settings.holidays)) {
+      return false;
+    }
+
+    return true;
+  }, [settings]);
+
+  // Helper function to generate remark based on leave and WFH overages
+  const generateRemark = useCallback((leaveDays: number, wfhDays: number, filterType: ReportFilterType): string => {
+    if (!settings) return '';
+
+    // Use yearly limits for full year reports, monthly limits for others
+    const isFullYearReport = filterType === 'currentFiscalYear' || filterType === 'normalYear';
+
+    const ptoLimit = isFullYearReport ? settings.ptoYearly : settings.ptoMonthly;
+    const wfhLimit = isFullYearReport ? settings.wfhYearly : settings.wfhMonthly;
+    const limitType = isFullYearReport ? 'yearly' : 'monthly';
+
+    const leaveOverage = leaveDays - ptoLimit;
+    const wfhOverage = wfhDays - wfhLimit;
+
+    const overages = [];
+
+    if (leaveOverage > 0) {
+      overages.push(`${leaveOverage} leave day${leaveOverage !== 1 ? 's' : ''}`);
+    }
+
+    if (wfhOverage > 0) {
+      overages.push(`${wfhOverage} WFH day${wfhOverage !== 1 ? 's' : ''}`);
+    }
+
+    if (overages.length === 0) {
+      return `Within ${limitType} limit`;
+    }
+
+    if (overages.length === 1) {
+      return `Exceeded ${limitType} limit by ${overages[0]}`;
+    }
+
+    // Both overages
+    return `Exceeded ${limitType} limit by ${overages.join(' and ')}`;
+  }, [settings]);
+
   // Generate report data
   const reportData = useMemo((): ReportData[] => {
     if (!reportDateRange || !employees.length || !leaveRecords.length) return [];
@@ -119,9 +176,10 @@ export const Reports: React.FC = () => {
             const normalizedRangeEnd = normalizeDateToStartOfDay(reportDateRange.end);
 
             if (normalizedDate >= normalizedRangeStart && normalizedDate <= normalizedRangeEnd) {
-              if (dayType === 'leave') {
+              // Only count leave/WFH days that are not weekends or holidays
+              if (shouldCountAsLeave(date) && dayType === 'leave') {
                 leaveDays++;
-              } else if (dayType === 'wfh') {
+              } else if (shouldCountAsLeave(date) && dayType === 'wfh') {
                 wfhDays++;
               }
             }
@@ -134,9 +192,10 @@ export const Reports: React.FC = () => {
         employeeId: employee.employeeId,
         leaveDays,
         wfhDays,
+        remark: generateRemark(leaveDays, wfhDays, filterType),
       };
     }).filter(data => data.leaveDays > 0 || data.wfhDays > 0); // Only show employees with leave/WFH
-  }, [employees, leaveRecords, reportDateRange]);
+  }, [employees, leaveRecords, reportDateRange, filterType, generateRemark, shouldCountAsLeave]);
 
   // Export to CSV
   const exportToCSV = () => {
@@ -144,13 +203,14 @@ export const Reports: React.FC = () => {
 
     setGeneratingReport(true);
     try {
-      const headers = ['Employee Name', 'Leave Days', 'WFH Days'];
+      const headers = ['Employee Name', 'Leave Days', 'WFH Days', 'Remark'];
       const csvData = [
         headers,
         ...reportData.map(row => [
           row.employeeName,
           row.leaveDays.toString(),
           row.wfhDays.toString(),
+          row.remark,
         ])
       ];
 
@@ -163,10 +223,34 @@ export const Reports: React.FC = () => {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
 
-      const dateRangeStr = reportDateRange
-        ? `${format(reportDateRange.start, 'yyyy-MM-dd')}_${format(reportDateRange.end, 'yyyy-MM-dd')}`
-        : 'report';
-      link.setAttribute('download', `leave_report_${dateRangeStr}.csv`);
+      // Generate descriptive filename based on report type and date range
+      const generateFileName = () => {
+        const baseName = 'HR_Leave_Report';
+        const dateStr = reportDateRange
+          ? `${format(reportDateRange.start, 'MMM_dd_yyyy')}_to_${format(reportDateRange.end, 'MMM_dd_yyyy')}`
+          : format(new Date(), 'MMM_dd_yyyy');
+
+        let reportTypeStr = '';
+        switch (filterType) {
+          case 'currentFiscalYear':
+            reportTypeStr = '_Current_Fiscal_Year';
+            break;
+          case 'normalYear':
+            reportTypeStr = `_${selectedYear}`;
+            break;
+          case 'specificMonth':
+            reportTypeStr = `_${months[selectedMonth]}_${selectedYear}`;
+            break;
+          case 'monthRange':
+            reportTypeStr = '_Custom_Range';
+            break;
+        }
+
+        const timestamp = format(new Date(), 'HHmm');
+        return `${baseName}${reportTypeStr}_${dateStr}_${timestamp}.csv`;
+      };
+
+      link.setAttribute('download', generateFileName());
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
