@@ -31,6 +31,7 @@ interface LeaveEntry {
   dateRange: DateRange;
   daySelections: DaySelection;
   reason: string;
+  optionalHolidaysTaken: number;
 }
 
 export const LeaveManagement: React.FC = () => {
@@ -83,7 +84,8 @@ export const LeaveManagement: React.FC = () => {
       id: `entry-${Date.now()}`,
       dateRange: { from: undefined, to: undefined },
       daySelections: {},
-      reason: ''
+      reason: '',
+      optionalHolidaysTaken: 0
     };
 
     // Close all existing entries and open only the new one
@@ -182,33 +184,62 @@ export const LeaveManagement: React.FC = () => {
   const handleDateSelect = (entryId: string, range: { from?: Date; to?: Date } | undefined) => {
     if (range) {
       const newRange: DateRange = { from: range.from, to: range.to };
-      // Initialize day selections for the selected date range
+      // Initialize day selections and count optional holidays taken for the selected date range
       const selections: DaySelection = {};
+      let optionalHolidaysCount = 0;
       if (range.from && range.to) {
         const current = new Date(range.from);
         while (current <= range.to) {
           const dateKey = format(current, 'yyyy-MM-dd');
           selections[dateKey] = 'leave'; // Default to leave
+          
+          // Check if this date is an optional holiday and count it if it's a leave day
+          const optionalHoliday = isOptionalHoliday(current, holidays);
+          if (optionalHoliday && selections[dateKey] === 'leave') {
+            optionalHolidaysCount++;
+          }
+          
           current.setDate(current.getDate() + 1);
         }
       }
-      updateLeaveEntry(entryId, { dateRange: newRange, daySelections: selections });
+      updateLeaveEntry(entryId, { 
+        dateRange: newRange, 
+        daySelections: selections,
+        optionalHolidaysTaken: optionalHolidaysCount
+      });
     }
   };
 
   const handleDayTypeChange = useCallback((entryId: string, date: Date, type: LeaveDayType) => {
     const dateKey = format(date, 'yyyy-MM-dd');
-    updateLeaveEntry(entryId, {
-      daySelections: {
-        ...leaveEntries.find(entry => entry.id === entryId)?.daySelections,
-        [dateKey]: type
+    const entry = leaveEntries.find(entry => entry.id === entryId);
+    
+    // Update the day selection
+    const newDaySelections = {
+      ...entry?.daySelections,
+      [dateKey]: type
+    };
+    
+    // Recalculate optional holidays count
+    let optionalHolidaysCount = 0;
+    Object.keys(newDaySelections).forEach(dayKey => {
+      const dayDate = new Date(dayKey);
+      const optionalHoliday = isOptionalHoliday(dayDate, holidays);
+      if (optionalHoliday && newDaySelections[dayKey] === 'leave') {
+        optionalHolidaysCount++;
       }
     });
-  }, [leaveEntries]);
+    
+    updateLeaveEntry(entryId, {
+      daySelections: newDaySelections,
+      optionalHolidaysTaken: optionalHolidaysCount
+    });
+  }, [leaveEntries, holidays]);
 
   const handleReasonChange = (entryId: string, reason: string) => {
     updateLeaveEntry(entryId, { reason });
   };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -253,6 +284,7 @@ export const LeaveManagement: React.FC = () => {
           startDate: format(entry.dateRange.from!, 'yyyy-MM-dd'),
           endDate: format(entry.dateRange.to!, 'yyyy-MM-dd'),
           days: entry.daySelections,
+          optionalHolidaysTaken: entry.optionalHolidaysTaken,
         };
 
         // Only include reason if it has a value
@@ -365,9 +397,9 @@ export const LeaveManagement: React.FC = () => {
         <p className="mt-2 text-gray-600">Manage employee leave requests and work-from-home schedules</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[70%_30%] gap-6 flex-1 overflow-hidden">
+      <div className="flex align-center w-full gap-6 flex-1 overflow-hidden">
         {/* Left Column - Create Leave Record and Summary */}
-        <div className="flex flex-col gap-2 overflow-auto">
+        <div className="flex flex-col gap-2 overflow-auto w-[70%]">
           {/* Leave Form */}
           <Card className="h-fit">
             <CardHeader>
@@ -642,10 +674,19 @@ export const LeaveManagement: React.FC = () => {
                                             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                                             const isDisabled = isDateDisabled(currentDate, existingLeaveRecords, holidays);
 
+                                            const optionalHoliday = isOptionalHoliday(currentDate, holidays);
+                                            
                                             if (!isWeekend && !isHoliday(currentDate, holidays) && !isDisabled) {
                                               days.push(
                                                 <div key={dateKey} className="flex items-center justify-between py-3 px-3 bg-white rounded-lg border text-xs">
-                                                  <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                                  <div className="flex flex-col">
+                                                    <span className="font-medium">{format(current, 'EEE, MMM dd')}</span>
+                                                    {optionalHoliday && (
+                                                      <span className="text-xs text-yellow-600 font-medium">
+                                                        {optionalHoliday.name} {dayType === 'wfh' ? '(WFH)' : '(Leave)'}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                   <div className="flex gap-2">
                                                     <Button
                                                       type="button"
@@ -717,7 +758,7 @@ export const LeaveManagement: React.FC = () => {
         </div>
 
         {/* Right Column - Leave Entries Overview */}
-        <Card className="overflow-hidden flex flex-col">
+        <Card className="overflow-hidden flex flex-col w-[30%]">
           <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
@@ -735,7 +776,7 @@ export const LeaveManagement: React.FC = () => {
               <div className="space-y-4">
                 {leaveEntries.map((entry, index) => (
                   <Card key={entry.id} className="border-l-4 border-l-blue-500">
-                    <CardHeader className="pb-2">
+                    <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm">Entry {index + 1}</CardTitle>
                         <Badge variant="outline" className="text-xs">
@@ -817,8 +858,14 @@ export const LeaveManagement: React.FC = () => {
 
                                 if (holiday || optionalHoliday) {
                                   // Holiday day
-                                  badgeContent = optionalHoliday ? 'Optional Holiday' : 'Holiday';
-                                  badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
+                                  if (optionalHoliday) {
+                                    // Always show as "Optional Holiday" to make it clear these are special days
+                                    badgeContent = 'Optional Holiday';
+                                    badgeClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                                  } else {
+                                    badgeContent = 'Holiday';
+                                    badgeClass = 'bg-orange-50 text-orange-700 border-orange-200';
+                                  }
                                 } else if (!isDisabled) {
                                   // Working day
                                   badgeContent = dayType === 'leave' ? 'Leave' : 'WFH';

@@ -77,7 +77,7 @@ export const LeaveProvider: React.FC<LeaveProviderProps> = ({ children }) => {
 
   const createLeaveRecord = useCallback(async (data: CreateLeaveRecordData): Promise<LeaveRecord> => {
     try {
-      const newRecord = await createLeaveRecordService(data);
+      const newRecord = await createLeaveRecordService(data, holidays);
       setLeaveRecords(prev => [newRecord, ...prev]);
       toast.success('Leave record created successfully');
       return newRecord;
@@ -87,11 +87,11 @@ export const LeaveProvider: React.FC<LeaveProviderProps> = ({ children }) => {
       toast.error(errorMessage);
       throw err;
     }
-  }, []);
+  }, [holidays]);
 
   const updateLeaveRecord = useCallback(async (id: string, data: UpdateLeaveRecordData): Promise<LeaveRecord> => {
     try {
-      const updatedRecord = await updateLeaveRecordService(id, data);
+      const updatedRecord = await updateLeaveRecordService(id, data, holidays);
       setLeaveRecords(prev => prev.map(record => record.id === id ? updatedRecord : record));
       toast.success('Leave record updated successfully');
       return updatedRecord;
@@ -101,7 +101,7 @@ export const LeaveProvider: React.FC<LeaveProviderProps> = ({ children }) => {
       toast.error(errorMessage);
       throw err;
     }
-  }, []);
+  }, [holidays]);
 
   const deleteLeaveRecord = useCallback(async (id: string): Promise<void> => {
     try {

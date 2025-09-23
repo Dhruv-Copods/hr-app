@@ -12,6 +12,9 @@ export interface Employee {
   officialEmail: string;
   personalEmail: string;
   mobileNumber?: string;
+  optionalLeavesTaken?: {
+    [year: string]: number; // Year as string (e.g., "2024") -> number of optional holidays taken
+  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,6 +76,7 @@ export interface LeaveRecord {
   approved?: boolean; // Optional since we're not using approval workflow
   approvedBy?: string;
   approvedAt?: string;
+  optionalHolidaysTaken?: number; // Count of optional holidays taken in this leave record
   createdAt?: string;
   updatedAt?: string;
 }

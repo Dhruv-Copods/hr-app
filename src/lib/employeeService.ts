@@ -140,3 +140,46 @@ export async function getEmployeesByDepartment(department: string): Promise<Empl
     throw new Error('Failed to fetch employees by department');
   }
 }
+
+export async function updateEmployeeOptionalLeaves(employeeId: string, year: string, additionalOptionalLeaves: number): Promise<Employee> {
+  try {
+    // First, get the employee by employeeId
+    const employees = await getAllEmployees();
+    const employee = employees.find(emp => emp.employeeId === employeeId);
+    
+    if (!employee || !employee.id) {
+      throw new Error('Employee not found');
+    }
+
+    const docRef = doc(getCollection(), employee.id);
+    const now = Timestamp.now();
+
+    // Get current optional leaves taken for the year
+    const currentOptionalLeaves = employee.optionalLeavesTaken?.[year] || 0;
+    const newOptionalLeavesCount = currentOptionalLeaves + additionalOptionalLeaves;
+
+    // Ensure the count doesn't go below 0
+    const finalCount = Math.max(0, newOptionalLeavesCount);
+
+    const updateData = {
+      optionalLeavesTaken: {
+        ...employee.optionalLeavesTaken,
+        [year]: finalCount
+      },
+      updatedAt: now,
+    };
+
+    await updateDoc(docRef, updateData);
+
+    const updatedDoc = await getDoc(docRef);
+    return {
+      id: updatedDoc.id,
+      ...updatedDoc.data(),
+      createdAt: updatedDoc.data()?.createdAt?.toDate?.()?.toISOString() || updatedDoc.data()?.createdAt,
+      updatedAt: now.toDate().toISOString(),
+    } as Employee;
+  } catch (error) {
+    console.error('Error updating employee optional leaves:', error);
+    throw new Error('Failed to update employee optional leaves');
+  }
+}
